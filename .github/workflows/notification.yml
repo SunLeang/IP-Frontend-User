@@ -9,7 +9,6 @@ on:
   delete:
     branches:
       - "**"
-
 jobs:
   notifications:
     uses: SunLeang/IP_script/.github/workflows/greetings.yml@main
