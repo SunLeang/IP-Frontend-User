@@ -1,0 +1,24 @@
+i put like this
+
+/project-root
+│── /app
+│   │── /(auth) 
+│   │   ├── login 
+│   │   │   ├── page.tsx
+│   │   ├── register
+│   │   │   ├── page.tsx
+│   │── /(dashboard)
+│   │   ├── /admin
+│   │   │   ├── page.tsx
+│   │   │   ├── ...
+│   │   ├── /superadmin
+│   │   │   ├── page.tsx
+│   │   │   ├── ...
+│   │── /(page)
+│   │   ├── /user
+│   │   │   ├── page.tsx
+│   │   │   ├── ...
+│   │   ├── /volunteer
+│   │   │   ├── page.tsx
+│   │   │   ├── ...
+│   │── index.tsx  (Landing Page)
