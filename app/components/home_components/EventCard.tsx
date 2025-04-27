@@ -74,12 +74,12 @@ export default function EventCard({
                 </div>
 
                 {/* Time, Price, Interested */}
-                <div className="flex justify-between items-center mt-4 text-sm text-gray-600">
+                <div className="flex sm:flex-col sm:items-start 2xl:flex-row justify-between items-center mt-4 text-sm text-gray-600">
                   <div>
                     <p>{time}</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span>₹ {price}</span>
+                  <div className="flex gap-2">
+                    <span>$ {price}</span>
                     <span>★ {interested} interested</span>
                   </div>
                 </div>
