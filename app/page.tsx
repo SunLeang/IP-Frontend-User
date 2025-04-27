@@ -1,103 +1,193 @@
+"use client";
 import Image from "next/image";
+import React, { useState } from "react";
+import EventCard from "./components/home_components/EventCard";
 
-export default function Home() {
+const categories = [
+  { title: "Seminar", img: "seminar.png" },
+  { title: "Culture", img: "lantern.png" },
+  { title: "Festival", img: "balloon.png" },
+  { title: "Songkran", img: "songkran.png" },
+];
+
+const events = [
+  {
+    title: "Event New Year Celebration",
+    img: "new-year.png",
+    date: { month: "NOV", day: "22" },
+    venue: "Venue",
+    time: "00:00 AM - 00:00 PM",
+    price: 499,
+    interested: 10,
+    category: "Entertainment",
+  },
+  {
+    title: "Event Booking and Explore",
+    img: "eventx.png",
+    date: { month: "NOV", day: "22" },
+    venue: "Venue",
+    time: "00:00 AM - 00:00 PM",
+    price: 499,
+    interested: 10,
+    category: "Entertainment",
+  },
+  {
+    title: "Event Summer Festival",
+    img: "summer.png",
+    date: { month: "NOV", day: "22" },
+    venue: "Venue",
+    time: "00:00 AM - 00:00 PM",
+    price: 499,
+    interested: 10,
+    category: "Entertainment",
+  },
+  {
+    title: "Event Prom Night",
+    img: "prom.png",
+    date: { month: "NOV", day: "22" },
+    venue: "Venue",
+    time: "00:00 AM - 00:00 PM",
+    price: 499,
+    interested: 10,
+    category: "Entertainment",
+  },
+
+  {
+    title: "Event New Year Celebration",
+    img: "new-year.png",
+    date: { month: "NOV", day: "22" },
+    venue: "Venue",
+    time: "00:00 AM - 00:00 PM",
+    price: 499,
+    interested: 10,
+    category: "Entertainment",
+  },
+  {
+    title: "Event Booking and Explore",
+    img: "eventx.png",
+    date: { month: "NOV", day: "22" },
+    venue: "Venue",
+    time: "00:00 AM - 00:00 PM",
+    price: 499,
+    interested: 10,
+    category: "Entertainment",
+  },
+  {
+    title: "Event Summer Festival",
+    img: "summer.png",
+    date: { month: "NOV", day: "22" },
+    venue: "Venue",
+    time: "00:00 AM - 00:00 PM",
+    price: 499,
+    interested: 10,
+    category: "Entertainment",
+  },
+  {
+    title: "Event Prom Night",
+    img: "prom.png",
+    date: { month: "NOV", day: "22" },
+    venue: "Venue",
+    time: "00:00 AM - 00:00 PM",
+    price: 499,
+    interested: 10,
+    category: "Entertainment",
+  },
+];
+
+export default function page() {
+  const [visibleEventsPopular, setVisibleEventsPopular] = useState(4);
+  const [isExpandedPopular, setIsExpandedPopular] = useState(false);
+
+  const [visibleEventsOnline, setVisibleEventsOnline] = useState(4);
+  const [isExpandedOnline, setIsExpandedOnline] = useState(false);
+
+  const handleSeeMorePopularEvents = () => {
+    setIsExpandedPopular((prev) => !prev);
+    setVisibleEventsPopular((prev) => (isExpandedPopular ? 4 : events.length));
+  };
+
+  const handleSeeMoreOnlineEvents = () => {
+    setIsExpandedOnline((prev) => !prev);
+    setVisibleEventsOnline((prev) => (isExpandedOnline ? 4 : events.length));
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+    <div className="min-h-screen bg-[#f7f9fc] text-gray-900">
+      {/* Big Image Top Banner */}
+      <section
+        className="relative bg-cover bg-center h-[400px]"
+        style={{ backgroundImage: "url('/assets/images/banner.png')" }}
+      >
+        <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-center px-4">
+          <h1 className="text-4xl font-bold text-white">Don't miss out!</h1>
+          <h2 className="text-2xl text-white mt-2">
+            Explore the <span className="text-yellow-400">vibrant events</span>{" "}
+            happening right now.
+          </h2>
+          <div className="mt-6 w-full max-w-xl">
+            <input
+              type="text"
+              placeholder="Search Events, Categories, Location..."
+              className="w-full px-4 py-2 rounded-md focus:outline-none"
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </section>
+
+      {/* Popular Categorys */}
+      <section className="py-12 px-6 text-center">
+        <h2 className="text-2xl font-bold mb-8">
+          Explore Popular Events Categories
+        </h2>
+        <div className="flex flex-wrap justify-center gap-20">
+          {categories.map(({ title, img }) => (
+            <div key={title} className="flex flex-col items-center">
+              <Image
+                src={`/assets/images/${img}`}
+                alt={`${title} img`}
+                width={200}
+                height={120}
+              />
+              <span>{title}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Popular Event */}
+      <section className="py-6 px-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold">Popular Events in Phnom Penh</h2>
+          <div className="flex gap-2">
+            {["All", "Today", "Tomorrow"].map((date) => (
+              <DateButton key={date} date={date} />
+            ))}
+          </div>
+        </div>
+        <EventCard
+          events={events.slice(0, visibleEventsPopular)}
+          onSeeMore={handleSeeMorePopularEvents}
+          isExpanded={isExpandedPopular}
+        />
+      </section>
+
+      {/* Discover Best Online Events */}
+      <section className="py-6 px-6">
+        <h2 className="text-2xl font-bold mb-6">Discover Best Online Events</h2>
+        <EventCard
+          events={events.slice(0, visibleEventsOnline)}
+          onSeeMore={handleSeeMoreOnlineEvents}
+          isExpanded={isExpandedOnline}
+        />
+      </section>
     </div>
   );
 }
+
+const DateButton = ({ date }: { date: string }) => {
+  return (
+    <button className="px-3 py-1 bg-gray-200 rounded-full text-sm">
+      {date}
+    </button>
+  );
+};
