@@ -15,13 +15,15 @@ interface Event {
 
 interface EventCardProps {
   events: Event[];
-  onSeeMore: () => void;
-  isExpanded: boolean;
+  onSeeMore?: () => void;
+  isExpanded?: boolean;
+  showSeeMoreButton: boolean;
 }
 export default function EventCard({
   events,
   onSeeMore,
   isExpanded,
+  showSeeMoreButton,
 }: EventCardProps) {
   return (
     <div>
@@ -90,7 +92,7 @@ export default function EventCard({
       </div>
 
       {/* See More */}
-      {events.length > 0 && (
+      {showSeeMoreButton && events.length > 0 && (
         <div className="flex justify-center mt-10">
           <button onClick={onSeeMore} className="px-6 py-2 border rounded-full">
             {isExpanded ? "See Less" : "See More"}

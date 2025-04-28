@@ -1,5 +1,16 @@
-import CardList from "@/app/components/CardList";
+import EventCard from "@/app/components/EventCard";
 import Filters from "@/app/components/Filters";
+
+const events = Array.from({ length: 12 }, (_, idx) => ({
+  title: "Event New Year Celebration",
+  img: "new-year.png",
+  date: { month: "NOV", day: "22" },
+  venue: "Venue",
+  time: "00:00 AM - 00:00 PM",
+  price: 4.99,
+  interested: 10,
+  category: "Entertainment",
+}));
 
 export default function Home() {
   return (
@@ -30,8 +41,9 @@ export default function Home() {
         <Filters />
       </section>
 
+      {/* Events Section */}
       <div className="min-h-screen bg-[#f7f9fc] px-6 py-10">
-        <CardList />
+        <EventCard events={events} showSeeMoreButton={false} />
       </div>
     </div>
   );

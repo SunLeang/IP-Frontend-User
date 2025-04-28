@@ -3,7 +3,7 @@ import Card from "./Card";
 const events = Array.from({ length: 12 }, (_, idx) => ({
   title: "Event title that can go up to two lines",
   date: "NOV 22",
-  time: "00:00AM - 00:00PM", 
+  time: "00:00AM - 00:00PM",
   venue: "Venue",
   category: "Technology & Innovation",
   interested: 50 + idx,
@@ -17,7 +17,7 @@ const CardList = () => {
           key={index}
           title={event.title}
           date={event.date}
-          time={event.time}    
+          time={event.time}
           venue={event.venue}
           category={event.category}
           interested={event.interested}
