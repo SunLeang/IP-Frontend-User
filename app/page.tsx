@@ -140,8 +140,8 @@ export default function page() {
           Explore Popular Events Categories
         </h2>
         <div className="flex flex-wrap justify-center gap-20">
-          {categories.map(({ title, img }) => (
-            <div key={title} className="flex flex-col items-center">
+          {categories.map(({ title, img }, index) => (
+            <div key={index} className="flex flex-col items-center">
               <Image
                 src={`/assets/images/${img}`}
                 alt={`${title} img`}
