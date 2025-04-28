@@ -92,6 +92,8 @@ export default function Navbar() {
             Register
           </button>
         </div>
+
+        <div className="w-5"></div>
       </div>
 
       {/* Mobile Login/Registration Buttons */}
