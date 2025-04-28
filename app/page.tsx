@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import Link from "next/link";
 import React, { useState } from "react";
 import Sidebar from "./components/home_components/Sidebar";
 import EventCard from "./components/EventCard";
@@ -95,6 +96,8 @@ const events = [
   },
 ];
 
+
+
 export default function page() {
   const [visibleEventsPopular, setVisibleEventsPopular] = useState(4);
   const [isExpandedPopular, setIsExpandedPopular] = useState(false);
@@ -111,6 +114,10 @@ export default function page() {
     setIsExpandedOnline((prev) => !prev);
     setVisibleEventsOnline((prev) => (isExpandedOnline ? 4 : events.length));
   };
+
+  function setCurrentPage(page: number): void {
+    throw new Error("Function not implemented.");
+  }
 
   return (
     <div className="min-h-screen bg-[#f7f9fc] text-gray-900">
