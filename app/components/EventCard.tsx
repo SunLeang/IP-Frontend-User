@@ -1,6 +1,5 @@
 "use client";
 import Image from "next/image";
-// import React, { useState } from "react";
 
 interface Event {
   title: string;
@@ -51,9 +50,9 @@ export default function EventCard({
                     {category}
                   </div>
                 </div>
-                {/* Top-right Save Icon (optional) */}
-                <div className="absolute top-2 right-2 bg-white p-1 rounded-full shadow">
-                  <span>☆</span> {/* You can replace with real icon */}
+                {/* Top-right Save Icon*/}
+                <div className="absolute top-2 right-2 bg-white px-1 rounded-full shadow">
+                  <span>☆</span>
                 </div>
               </div>
 
@@ -82,7 +81,7 @@ export default function EventCard({
                   </div>
                   <div className="flex gap-2">
                     <span>$ {price}</span>
-                    <span>★ {interested} interested</span>
+                    <span>💙 {interested} interested</span>
                   </div>
                 </div>
               </div>

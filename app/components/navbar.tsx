@@ -6,7 +6,7 @@ import { useState } from "react";
 
 const navbarItems = [
   { label: "Home", href: "/", icon: <House width={20} /> },
-  { label: "Events", href: "/events", icon: <Calendar1 width={20} /> },
+  { label: "Events", href: "/event", icon: <Calendar1 width={20} /> },
   { label: "Interest", href: "/interest", icon: <Star width={20} /> },
   { label: "Contact Us", href: "/contact-us", icon: <Phone width={20} /> },
   { label: "Volunteer", href: "/volunteer", icon: <HandHeart width={20} /> },

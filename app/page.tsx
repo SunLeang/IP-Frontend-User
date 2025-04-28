@@ -1,8 +1,8 @@
 "use client";
 import Image from "next/image";
 import React, { useState } from "react";
-import EventCard from "./components/home_components/EventCard";
 import Sidebar from "./components/home_components/Sidebar";
+import EventCard from "./components/EventCard";
 
 const categories = [
   { title: "Seminar", img: "seminar.png" },
@@ -171,6 +171,7 @@ export default function page() {
           events={events.slice(0, visibleEventsPopular)}
           onSeeMore={handleSeeMorePopularEvents}
           isExpanded={isExpandedPopular}
+          showSeeMoreButton={true}
         />
       </section>
 
@@ -181,6 +182,7 @@ export default function page() {
           events={events.slice(0, visibleEventsOnline)}
           onSeeMore={handleSeeMoreOnlineEvents}
           isExpanded={isExpandedOnline}
+          showSeeMoreButton={true}
         />
       </section>
     </div>
