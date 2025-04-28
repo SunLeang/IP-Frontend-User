@@ -2,7 +2,7 @@ import React from "react";
 
 export default function Footer() {
   return (
-    <footer className="bg-[#0b1b33] text-white py-12 px-6">
+    <footer className="bg-primaryblue text-white py-12 px-6">
       <div className="grid md:grid-cols-4 gap-8 text-sm">
         <div>
           <h4 className="font-bold mb-4">Company Info</h4>

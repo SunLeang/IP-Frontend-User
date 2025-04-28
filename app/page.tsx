@@ -2,6 +2,7 @@
 import Image from "next/image";
 import React, { useState } from "react";
 import EventCard from "./components/home_components/EventCard";
+import Sidebar from "./components/home_components/Sidebar";
 
 const categories = [
   { title: "Seminar", img: "seminar.png" },
@@ -113,6 +114,8 @@ export default function page() {
 
   return (
     <div className="min-h-screen bg-[#f7f9fc] text-gray-900">
+      <Sidebar />
+
       {/* Big Image Top Banner */}
       <section
         className="relative bg-cover bg-center h-[400px]"
@@ -140,8 +143,8 @@ export default function page() {
           Explore Popular Events Categories
         </h2>
         <div className="flex flex-wrap justify-center gap-20">
-          {categories.map(({ title, img }) => (
-            <div key={title} className="flex flex-col items-center">
+          {categories.map(({ title, img }, index) => (
+            <div key={index} className="flex flex-col items-center">
               <Image
                 src={`/assets/images/${img}`}
                 alt={`${title} img`}

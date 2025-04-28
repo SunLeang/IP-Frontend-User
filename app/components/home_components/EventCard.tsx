@@ -15,8 +15,8 @@ interface Event {
 
 interface EventCardProps {
   events: Event[];
-  onSeeMore: () => void;
-  isExpanded: boolean;
+  onSeeMore?: () => void;
+  isExpanded?: boolean;
 }
 export default function EventCard({
   events,

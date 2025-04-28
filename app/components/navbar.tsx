@@ -1,6 +1,16 @@
 "use client";
+import { Calendar1, HandHeart, House, Phone, Star } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
+
+const navbarItems = [
+  { label: "Home", href: "/", icon: <House width={20} /> },
+  { label: "Events", href: "/events", icon: <Calendar1 width={20} /> },
+  { label: "Interest", href: "/interest", icon: <Star width={20} /> },
+  { label: "Contact Us", href: "/contact-us", icon: <Phone width={20} /> },
+  { label: "Volunteer", href: "/volunteer", icon: <HandHeart width={20} /> },
+];
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -14,23 +24,14 @@ export default function Navbar() {
         height={60}
       />
 
-      {/* Desktop Navbar Links */}
+      {/* Navbar Links */}
       <div className="hidden md:flex items-center space-x-6">
-        <a href="#" className="hover:underline">
-          Home
-        </a>
-        <a href="#" className="hover:underline">
-          Events
-        </a>
-        <a href="#" className="hover:underline">
-          Interest
-        </a>
-        <a href="#" className="hover:underline">
-          Contact Us
-        </a>
-        <a href="#" className="hover:underline">
-          Volunteer
-        </a>
+        {navbarItems.map(({ label, href, icon }) => (
+          <Link key={href} href={href} className="flex items-center space-x-2">
+            <div>{icon}</div>
+            <div className="hover:underline">{label}</div>
+          </Link>
+        ))}
       </div>
 
       {/* Hamburger Button for Mobile */}
@@ -91,6 +92,8 @@ export default function Navbar() {
             Register
           </button>
         </div>
+
+        <div className="w-5"></div>
       </div>
 
       {/* Mobile Login/Registration Buttons */}
