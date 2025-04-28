@@ -9,14 +9,21 @@ interface CardProps {
   interested: number;
 }
 
-const Card = ({ title, date, venue, time, category, interested }: CardProps) => {
+const Card = ({
+  title,
+  date,
+  venue,
+  time,
+  category,
+  interested,
+}: CardProps) => {
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition">
       <div className="relative h-40 w-full">
-        <Image 
-          src="/assets/images/newyear.png" 
-          alt="Event" 
-          fill 
+        <Image
+          src="/assets/images/newyear.png"
+          alt="Event"
+          fill
           className="object-cover"
         />
         <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
@@ -29,7 +36,9 @@ const Card = ({ title, date, venue, time, category, interested }: CardProps) => 
 
       <div className="p-4 space-y-2">
         <div className="text-xs text-gray-500 flex items-center gap-2">
-          <span className="bg-yellow-400 text-white px-2 py-0.5 rounded">{category}</span>
+          <span className="bg-yellow-400 text-white px-2 py-0.5 rounded">
+            {category}
+          </span>
           <span>{date}</span>
         </div>
         <h3 className="font-semibold text-sm">{title}</h3>
