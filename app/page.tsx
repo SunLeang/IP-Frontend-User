@@ -1,6 +1,5 @@
 "use client";
 import Image from "next/image";
-import Link from "next/link";
 import React, { useState } from "react";
 import Sidebar from "./components/home_components/Sidebar";
 import EventCard from "./components/EventCard";
@@ -95,8 +94,6 @@ const events = [
     category: "Entertainment",
   },
 ];
-
-
 
 export default function page() {
   const [visibleEventsPopular, setVisibleEventsPopular] = useState(4);

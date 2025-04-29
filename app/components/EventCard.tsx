@@ -34,7 +34,9 @@ export default function EventCard({
             { title, img, date, venue, time, price, interested, category },
             index
           ) => (
-            <Link href={`/event/${index + 1}`} key={index}> {/* This is the Link to your event detail page */}
+            <Link href={`/event/detail`} key={index}>
+              {" "}
+              {/* This is the Link to your event detail page */}
               <div className="rounded-lg overflow-hidden shadow-md border cursor-pointer hover:shadow-lg transition">
                 {/* Image */}
                 <div className="relative">
