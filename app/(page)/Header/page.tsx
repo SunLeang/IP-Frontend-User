@@ -31,7 +31,7 @@ export const Header: React.FC = () => (
     <div className="max-w-7xl mx-auto flex items-center justify-between">
       <div className="flex items-center">
         <div className="mr-8">
-          <span className="font-bold text-lg text-indigo-600">eventio</span>
+          <span className="font-bold text-lg text-indigo-600">eventura</span>
         </div>
         <nav className="hidden md:flex space-x-6">
           {navLinks.map((link, index) => (
