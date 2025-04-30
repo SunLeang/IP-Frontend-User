@@ -3,6 +3,7 @@ import React from 'react';
 import SettingsSidebar from '../Sidebar/page';
 import ProfileSettings from '../profile/page';
 import ChangeEmail from './ChangeEmail/page';
+import Password from './SetPassword/page';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = React.useState('account-info');
@@ -39,13 +40,7 @@ export default function SettingsPage() {
             
             {activeTab === 'account-info' && <ProfileSettings />}
             {activeTab === 'change-email' && <ChangeEmail />}
-            {activeTab === 'password' && (
-              <div className="p-6">
-                <h3 className="text-xl font-semibold mb-4">Set Password</h3>
-                <p className="text-gray-600 mb-4">A password has not been set for you account.</p>
-                {/* Password form would go here */}
-              </div>
-            )}
+            {activeTab === 'password' && <Password />}
           </div>
         </div>
       </div>
