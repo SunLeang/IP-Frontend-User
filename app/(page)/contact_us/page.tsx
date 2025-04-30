@@ -15,7 +15,7 @@ export default function ContactUs() {
                 <br />
                 Our experts are available to answer any questions you
                 <br />
-                might have. We've got the answers.
+                might have. We&apos;re here to help.
               </p>
             </div>
 
@@ -54,7 +54,7 @@ export default function ContactUs() {
               <h2 className="text-3xl font-bold">
                 Have a project!
                 <br />
-                Let's diascuss
+                Let&apos;s diascuss
               </h2>
               <div className="space-y-2">
                 <p>Thank you for getting in touch!</p>
