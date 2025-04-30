@@ -112,6 +112,10 @@ export default function page() {
     setVisibleEventsOnline((prev) => (isExpandedOnline ? 4 : events.length));
   };
 
+  function setCurrentPage(page: number): void {
+    throw new Error("Function not implemented.");
+  }
+
   return (
     <div className="min-h-screen bg-[#f7f9fc] text-gray-900">
       <Sidebar />
