@@ -2,6 +2,18 @@
 
 import React from 'react';
 import Link from 'next/link';
+import EventCard from '@/app/components/EventCard';
+
+const events = Array.from({ length: 12 }, (_, idx) => ({
+  title: "Event New Year Celebration",
+  img: "new-year.png",
+  date: { month: "NOV", day: "22" },
+  venue: "Venue",
+  time: "00:00 AM - 00:00 PM",
+  price: 4.99,
+  interested: 10,
+  category: "Entertainment",
+}));
 
 const HomePage = () => {
   const dummyData = Array.from({ length: 12 }, (_, i) => ({
@@ -32,7 +44,8 @@ const HomePage = () => {
       </div>
 
       {/* Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <EventCard events={events} showSeeMoreButton={false} />
+      {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {dummyData.map((event, index) => (
           <div key={index} className="border rounded-lg overflow-hidden shadow-md bg-white">
             <div className="p-4">
@@ -44,7 +57,7 @@ const HomePage = () => {
             </div>
           </div>
         ))}
-      </div>
+      </div> */}
 
       {/* Pagination */}
       <div className="flex justify-center items-center mt-6 space-x-2">
