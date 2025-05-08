@@ -31,7 +31,7 @@ interface NavbarProps {
   userImage?: string
 }
 
-export default function Navbar({ isLoggedIn = false, userImage = "/assets/images/avatar.png" }: NavbarProps) {
+export default function Navbar({ isLoggedIn = false, userImage = "/icons/user.png" }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [isSwitchRolesModalOpen, setIsSwitchRolesModalOpen] = useState(false)
 
@@ -103,11 +103,15 @@ export default function Navbar({ isLoggedIn = false, userImage = "/assets/images
                     <UserSwitch className="mr-2 h-4 w-4" />
                     <span>Switch Role</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer">
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Setting</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="cursor-pointer" asChild>
+                  <Link href="/setting/account">
+                    <div className="flex items-center">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Setting</span>
+                    </div>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                   <DropdownMenuItem className="cursor-pointer text-red-500">
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log Out</span>

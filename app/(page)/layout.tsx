@@ -9,7 +9,8 @@ export default function MainLayout({
 }) {
   return (
     <>
-      <Navbar />
+      <Navbar isLoggedIn={true}/>
+      {/* <Navbar /> */}
       {children}
       <Footer />
     </>

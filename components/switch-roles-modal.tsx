@@ -3,15 +3,18 @@
 import { useState, useEffect } from "react"
 import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useRouter } from "next/navigation"
 
 interface SwitchRolesModalProps {
   isOpen: boolean
   onClose: () => void
   onSelectRole: (role: string) => void
+  currentRole?: string
 }
 
 export function SwitchRolesModal({ isOpen, onClose, onSelectRole }: SwitchRolesModalProps) {
   const [mounted, setMounted] = useState(false)
+  const router = useRouter()
 
   useEffect(() => {
     setMounted(true)
@@ -24,6 +27,17 @@ export function SwitchRolesModal({ isOpen, onClose, onSelectRole }: SwitchRolesM
       document.body.style.overflow = "auto"
     }
   }, [isOpen])
+
+  const handleSelectRole = (role: string) => {
+    onSelectRole(role)
+
+    // Redirect based on role
+    if (role === "volunteer") {
+      router.push("/volunteer-role/dashboard")
+    } else if (role === "attendee") {
+      router.push("/")
+    }
+  }
 
   if (!mounted || !isOpen) return null
 
@@ -39,7 +53,7 @@ export function SwitchRolesModal({ isOpen, onClose, onSelectRole }: SwitchRolesM
 
         <div className="p-6 space-y-4">
           <Button
-            onClick={() => onSelectRole("attendee")}
+            onClick={() => handleSelectRole("attendee")}
             className="w-full justify-start bg-white hover:bg-gray-100 text-black h-14 text-lg"
           >
             <div className="bg-blue-500 rounded-full p-1 mr-3">
@@ -62,7 +76,7 @@ export function SwitchRolesModal({ isOpen, onClose, onSelectRole }: SwitchRolesM
           </Button>
 
           <Button
-            onClick={() => onSelectRole("volunteer")}
+            onClick={() => handleSelectRole("volunteer")}
             className="w-full justify-start bg-white hover:bg-gray-100 text-black h-14 text-lg"
           >
             <div className="bg-gray-600 rounded-full p-1 mr-3">

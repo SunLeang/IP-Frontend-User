@@ -1,19 +1,19 @@
 "use client"
-
 import { useState } from "react"
-import { Checkbox } from "@/components/events/checkbox"
-import { Input } from "@/components/ui/input"
+import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { EventCard } from "@/components/events/event-card"
+import { Checkbox } from "@/components/events/checkbox"
+import { HeroSection } from "@/components/home/hero-section"
 
-export default function EventsPage() {
+export default function VolunteerPage() {
   const [currentPage, setCurrentPage] = useState(1)
 
-  // Sample events data
-  const events = Array.from({ length: 12 }, (_, i) => ({
-    id: `event-${i + 1}`,
-    title: "Event title that can go up to two lines",
-    image: "/assets/images/new-year.png",
+  // Sample volunteer opportunities data
+  const volunteerOpportunities = Array.from({ length: 9 }, (_, i) => ({
+    id: `volunteer-${i + 1}`,
+    title: "Requesting Volunteer on BookFair",
+    image: "/assets/images/prom-night.png",
     category: "Technology & Innovation",
     date: {
       month: "NOV",
@@ -21,50 +21,13 @@ export default function EventsPage() {
     },
     venue: "Venue",
     time: "00:00 AM - 00:00 PM",
-    price: 5.0,
-    interested: 10,
+    applicants: 20,
   }))
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-10">
-      {/* Hero Section */}
-      <div className="relative h-[300px] flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <div
-            className="w-full h-full bg-cover bg-center"
-            style={{
-              backgroundImage: "url('/assets/images/hero-bg.jpg')",
-              backgroundPosition: "center",
-              filter: "brightness(0.7)",
-            }}
-          />
-        </div>
-
-        <div className="container relative z-10 px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">Don't miss out!</h1>
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-8">
-            Explore the <span className="text-yellow-400">vibrant events</span> happening right now.
-          </h2>
-
-          <div className="relative max-w-xl mx-auto">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </div>
-            <Input
-              type="search"
-              placeholder="Search Events, Categories, Location..."
-              className="pl-10 py-6 rounded-md focus:outline-none bg-white border-none w-full"
-            />
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-white pb-10">
+      {/* Hero Banner */}
+      <HeroSection />
 
       {/* Filters Section */}
       <div className="container mx-auto px-4 py-6">
@@ -94,6 +57,7 @@ export default function EventsPage() {
                   </label>
                 </div>
               </div>
+              <button className="text-sm text-blue-300 mt-2">More</button>
             </div>
 
             {/* Date Filter */}
@@ -258,22 +222,11 @@ export default function EventsPage() {
         </div>
       </div>
 
-      {/* Events Grid */}
+      {/* Volunteer Opportunities Grid */}
       <div className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {events.map((event) => (
-            <EventCard
-              key={event.id}
-              id={event.id}
-              title={event.title}
-              image={event.image}
-              category={event.category}
-              date={event.date}
-              venue={event.venue}
-              time={event.time}
-              price={event.price}
-              interested={event.interested}
-            />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {volunteerOpportunities.map((opportunity) => (
+            <VolunteerCard key={opportunity.id} opportunity={opportunity} />
           ))}
         </div>
       </div>
@@ -289,10 +242,10 @@ export default function EventsPage() {
             <span className="sr-only">Previous</span>
             <span aria-hidden="true">‹ Back</span>
           </Button>
-          <Button variant="outline" size="sm" className="px-3">
+          <Button variant="default" size="sm" className="px-3 bg-[#001337]">
             1
           </Button>
-          <Button variant="default" size="sm" className="px-3 bg-[#001337]">
+          <Button variant="outline" size="sm" className="px-3">
             2
           </Button>
           <Button variant="outline" size="sm" className="px-3">
@@ -313,6 +266,82 @@ export default function EventsPage() {
             <span className="sr-only">Last</span>
             <span aria-hidden="true">Last »</span>
           </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Volunteer Card Component
+function VolunteerCard({ opportunity }: { opportunity: any }) {
+  return (
+    <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-100">
+      <div className="relative">
+        <div className="absolute top-0 left-0 w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white text-center py-1 text-xs">
+          ✨ YOU ARE INVITED ✨
+        </div>
+        <Image
+          src={opportunity.image || "/placeholder.svg"}
+          alt={opportunity.title}
+          width={400}
+          height={200}
+          className="w-full h-48 object-cover"
+        />
+        <div className="absolute bottom-0 left-0 w-full bg-pink-500 text-white text-center py-1 text-xs">
+          SCHOOL GRADUATION
+        </div>
+        <div className="absolute top-12 left-4 bg-pink-100 text-pink-800 text-xs px-2 py-1 rounded-sm">
+          {opportunity.category}
+        </div>
+      </div>
+
+      <div className="p-4">
+        <div className="flex justify-between items-start">
+          <div className="text-center">
+            <div className="text-xs font-semibold text-gray-500">{opportunity.date.month}</div>
+            <div className="text-2xl font-bold">{opportunity.date.day}</div>
+          </div>
+
+          <div className="flex-1 ml-4">
+            <h3 className="font-medium">{opportunity.title}</h3>
+            <p className="text-sm text-gray-500 mt-1">{opportunity.venue}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{opportunity.time}</p>
+            <div className="flex items-center mt-2 text-xs text-gray-500">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4 mr-1"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                />
+              </svg>
+              <span>{opportunity.applicants} Have applied</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 border-t pt-4">
+          <p className="text-sm mb-2">
+            Join us as a volunteer for our book fair! Help with setup, customer assistance, and organizing books at ITC.
+            Sign up today!
+          </p>
+          <p className="text-sm mb-3">
+            Location:{" "}
+            <a href="https://googlemap.com" className="text-blue-500 hover:underline">
+              googlemap.com
+            </a>
+          </p>
+          <div className="text-right">
+            <Link href={`/volunteer/${opportunity.id}`}>
+              <Button className="bg-blue-500 hover:bg-blue-600 text-white">Sign Up</Button>
+            </Link>
+          </div>
         </div>
       </div>
     </div>

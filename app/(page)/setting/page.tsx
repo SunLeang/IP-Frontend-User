@@ -1,5 +1,5 @@
 import React from "react";
-import page from "../(auth)/login/page";
+import page from "../../(auth)/login/page";
 
 
 
