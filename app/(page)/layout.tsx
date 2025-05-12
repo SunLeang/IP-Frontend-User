@@ -1,18 +1,6 @@
-import React from "react";
-import Navbar from "@/components/navigation/navbar";
-import { Footer } from "@/components/footer/footer";
+import { ReactNode } from "react";
+import { InterestProvider } from "@/context/interest-context";
 
-export default function MainLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <>
-      <Navbar isLoggedIn={true}/>
-      {/* <Navbar /> */}
-      {children}
-      <Footer />
-    </>
-  );
+export default function PageLayout({ children }: { children: ReactNode }) {
+  return <InterestProvider>{children}</InterestProvider>;
 }
