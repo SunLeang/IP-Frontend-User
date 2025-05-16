@@ -28,6 +28,11 @@ export function SwitchRolesModal({ isOpen, onClose, onSelectRole }: SwitchRolesM
     }
   }, [isOpen])
 
+  const roles = [
+    { id: "ATTENDEE", name: "Attendee", description: "Participate in events" },
+    { id: "VOLUNTEER", name: "Volunteer", description: "Help organize and run events" },
+  ]
+
   const handleSelectRole = (role: string) => {
     onSelectRole(role)
 

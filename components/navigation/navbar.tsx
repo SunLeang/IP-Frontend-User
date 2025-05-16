@@ -17,7 +17,7 @@ import {
   UserPlus,
   UserIcon as UserSwitch,
 } from "lucide-react"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -27,16 +27,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { SwitchRolesModal } from "@/components/switch-roles-modal"
+import { useAuth } from "@/context/auth-context"
 
-interface NavbarProps {
-  isLoggedIn?: boolean
-  userImage?: string
-}
-
-export default function Navbar({ isLoggedIn = false, userImage = "/icons/user.png" }: NavbarProps) {
+export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [isSwitchRolesModalOpen, setIsSwitchRolesModalOpen] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
+  const { user, isAuthenticated, logout } = useAuth()
+
+  const userImage = user?.profileImage || "/icons/user.png"
 
   const handleSwitchRole = () => {
     setIsSwitchRolesModalOpen(true)
@@ -45,6 +45,11 @@ export default function Navbar({ isLoggedIn = false, userImage = "/icons/user.pn
   const handleSelectRole = (role: string) => {
     console.log(`Selected role: ${role}`)
     setIsSwitchRolesModalOpen(false)
+  }
+
+  const handleLogout = async () => {
+    await logout()
+    router.push("/login")
   }
 
   return (
@@ -105,7 +110,7 @@ export default function Navbar({ isLoggedIn = false, userImage = "/icons/user.pn
 
           {/* Auth Buttons or User Profile */}
           <div className="hidden md:flex items-center gap-4">
-            {isLoggedIn ? (
+            {isAuthenticated ? (
               <>
                 <button className="relative">
                   <Bell size={20} />
@@ -138,7 +143,7 @@ export default function Navbar({ isLoggedIn = false, userImage = "/icons/user.pn
                       <span>Setting</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="cursor-pointer text-red-500">
+                    <DropdownMenuItem className="cursor-pointer text-red-500" onClick={handleLogout}>
                       <LogOut className="mr-2 h-4 w-4" />
                       <span>Log Out</span>
                     </DropdownMenuItem>
@@ -193,7 +198,7 @@ export default function Navbar({ isLoggedIn = false, userImage = "/icons/user.pn
               />
             </nav>
 
-            {isLoggedIn ? (
+            {isAuthenticated ? (
               <div className="flex flex-col space-y-2 mt-4 pt-4 border-t">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -206,7 +211,7 @@ export default function Navbar({ isLoggedIn = false, userImage = "/icons/user.pn
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    <span className="font-medium">Your Account</span>
+                    <span className="font-medium">{user?.fullName || "Your Account"}</span>
                   </div>
                   <button className="relative">
                     <Bell size={20} />
@@ -223,10 +228,10 @@ export default function Navbar({ isLoggedIn = false, userImage = "/icons/user.pn
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Setting</span>
                 </Link>
-                <Link href="/logout" className="flex items-center text-sm py-2 text-red-500">
+                <button onClick={handleLogout} className="flex items-center text-sm py-2 text-red-500">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log Out</span>
-                </Link>
+                </button>
               </div>
             ) : (
               <div className="flex flex-col space-y-2 mt-4 pt-4 border-t">

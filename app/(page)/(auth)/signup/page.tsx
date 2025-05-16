@@ -1,28 +1,61 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import Link from "next/link";
-import { Eye, EyeOff, Facebook, Lock, Mail, User } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+import type React from "react"
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { Eye, EyeOff, Facebook, Lock, Mail, User } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
+import { useAuth } from "@/context/auth-context"
+import type { RegisterData } from "@/context/auth-context"
 
 export default function SignupPage() {
-  const [showPassword, setShowPassword] = useState(false);
+  const [formData, setFormData] = useState<RegisterData>({
+    email: "",
+    password: "",
+    fullName: "",
+  })
+  const [showPassword, setShowPassword] = useState(false)
+  const [error, setError] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+
+  const { register } = useAuth()
+  const router = useRouter()
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+    setIsLoading(true)
+
+    try {
+      await register(formData)
+      router.push("/dashboard")
+    } catch (err: any) {
+      setError(err.message || "Registration failed. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
     <div className="flex min-h-screen">
-
       {/* Left Panel */}
       <div className="hidden md:flex md:w-1/2 bg-[#001337] text-white p-8 flex-col justify-center">
         <div className="mx-auto max-w-md space-y-6">
-          <h1 className="text-4xl font-bold leading-tight">
-            Discover tailored events.
-          </h1>
-          <h2 className="text-3xl font-bold leading-tight">
-            Sign up for personalized recommendations today!
-          </h2>
+          <h1 className="text-4xl font-bold leading-tight">Discover tailored events.</h1>
+          <h2 className="text-3xl font-bold leading-tight">Sign up for personalized recommendations today!</h2>
         </div>
       </div>
 
@@ -34,8 +67,6 @@ export default function SignupPage() {
           </div>
 
           {/* Social Login Buttons */}
-
-          { /* Google Button */}
           <div className="space-y-4">
             <Button
               variant="outline"
@@ -50,7 +81,6 @@ export default function SignupPage() {
               <span>Sign up with Google</span>
             </Button>
 
-            {/* Facebook Button */}
             <Button
               variant="outline"
               className="w-full flex items-center justify-center gap-2 h-12 border-gray-300 hover:bg-gray-50"
@@ -71,7 +101,8 @@ export default function SignupPage() {
           </div>
 
           {/* Signup Form */}
-          <form className="space-y-5">
+          <form className="space-y-5" onSubmit={handleSubmit}>
+            {error && <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">{error}</div>}
 
             {/* Full Name Input */}
             <div className="space-y-1.5">
@@ -82,9 +113,32 @@ export default function SignupPage() {
                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   id="fullName"
+                  name="fullName"
                   type="text"
                   placeholder="Enter your full name"
                   className="pl-10 h-12"
+                  value={formData.fullName}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Username Input (Optional) */}
+            <div className="space-y-1.5">
+              <Label htmlFor="username" className="text-sm font-medium">
+                Username (Optional)
+              </Label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  id="username"
+                  name="username"
+                  type="text"
+                  placeholder="Choose a username"
+                  className="pl-10 h-12"
+                  value={formData.username || ""}
+                  onChange={handleChange}
                 />
               </div>
             </div>
@@ -98,9 +152,13 @@ export default function SignupPage() {
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   id="email"
+                  name="email"
                   type="email"
                   placeholder="Enter your e-mail"
                   className="pl-10 h-12"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
                 />
               </div>
             </div>
@@ -114,9 +172,13 @@ export default function SignupPage() {
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   id="password"
+                  name="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="Create a password"
                   className="pl-10 pr-10 h-12"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
                 />
                 <button
                   type="button"
@@ -126,28 +188,24 @@ export default function SignupPage() {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Password must be at least 8 characters long
-              </p>
+              <p className="text-xs text-gray-500 mt-1">Password must be at least 8 characters long</p>
             </div>
 
             {/* Create Account Button */}
             <Button
               type="submit"
               className="w-full h-12 bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 text-black font-medium mt-4"
+              disabled={isLoading}
             >
-              Create Account
+              {isLoading ? "Creating Account..." : "Create Account"}
             </Button>
           </form>
 
-            {/*Already have account */}
+          {/*Already have account */}
           <div className="text-center pt-2">
             <p className="text-sm text-gray-600">
               Already have an account?{" "}
-              <Link
-                href="/login"
-                className="text-blue-600 hover:underline font-medium"
-              >
+              <Link href="/login" className="text-blue-600 hover:underline font-medium">
                 Log In
               </Link>
             </p>
@@ -155,5 +213,5 @@ export default function SignupPage() {
         </div>
       </div>
     </div>
-  );
+  )
 }

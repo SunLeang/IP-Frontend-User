@@ -1,6 +1,8 @@
 import Image from "next/image"
+import Link from "next/link"
 
 interface Category {
+  id: string
   title: string
   img: string
 }
@@ -15,11 +17,11 @@ export function CategorySection({ categories }: CategorySectionProps) {
       <div className="container mx-auto">
         <h2 className="text-2xl font-bold mb-8">Explore Popular Events Categories</h2>
         <div className="flex flex-wrap justify-center gap-10 md:gap-20">
-          {categories.map(({ title, img }, index) => (
-            <div key={index} className="flex flex-col items-center group cursor-pointer">
+          {categories.map(({ id, title, img }) => (
+            <Link href={`/events?category=${id}`} key={id} className="flex flex-col items-center group cursor-pointer">
               <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden mb-2 border-2 border-white shadow-md transition-transform group-hover:scale-105">
                 <Image
-                  src={`/assets/images/${img}`}
+                  src={img.startsWith("http") ? img : `/assets/images/${img}`}
                   alt={`${title} category`}
                   width={96}
                   height={96}
@@ -27,7 +29,7 @@ export function CategorySection({ categories }: CategorySectionProps) {
                 />
               </div>
               <span className="font-medium">{title}</span>
-            </div>
+            </Link>
           ))}
         </div>
       </div>
