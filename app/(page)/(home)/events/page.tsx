@@ -1,285 +1,114 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { Checkbox } from "@/components/checkbox";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { EventCard } from "@/components/events/event-card";
-import { HeroSection } from "@/components/hero-section";
+import { useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
+import { getEvents, type Event } from "@/services/event-service"
+import { getCategories, type Category } from "@/services/category-service"
+import { EventCard } from "@/components/events/event-card"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export default function EventsPage() {
-  const [currentPage, setCurrentPage] = useState(1);
+  const searchParams = useSearchParams()
+  const categoryId = searchParams.get("category")
 
-  // Sample events data
-  const events = Array.from({ length: 12 }, (_, i) => ({
-    id: `event-${i + 1}`,
-    title: "Event title that can go up to two lines",
-    image: "/assets/images/new-year.png",
-    category: "Technology & Innovation",
-    date: {
-      month: "NOV",
-      day: "22",
-    },
-    venue: "Venue",
-    time: "00:00 AM - 00:00 PM",
-    price: 5.0,
-    interested: 10,
-  }));
+  const [events, setEvents] = useState<Event[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(categoryId)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchData() {
+      setIsLoading(true)
+      try {
+        const [eventsData, categoriesData] = await Promise.all([
+          getEvents(selectedCategory ? { categoryId: selectedCategory, status: "PUBLISHED" } : { status: "PUBLISHED" }),
+          getCategories(),
+        ])
+        setEvents(eventsData)
+        setCategories(categoriesData)
+      } catch (error) {
+        console.error("Error fetching data:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [selectedCategory])
+
+  const handleCategoryChange = (categoryId: string | null) => {
+    setSelectedCategory(categoryId)
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-10">
-      {/* Hero Banner */}
-      <HeroSection />
+    <div className="container mx-auto py-8 px-4">
+      <h1 className="text-3xl font-bold mb-6">Events</h1>
 
-      {/* Filters Section */}
-      <div className="container mx-auto px-4 py-6">
-        <h2 className="text-xl font-bold mb-4">Filters</h2>
-        <div className="bg-[#001337] text-white rounded-lg p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {/* Price Filter */}
-            <div>
-              <h3 className="font-semibold mb-3">Price</h3>
-              <div className="space-y-2">
-                <div className="flex items-center">
-                  <Checkbox
-                    id="free"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="free" className="ml-2 text-sm">
-                    Free
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="paid"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="paid" className="ml-2 text-sm">
-                    Paid
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            {/* Date Filter */}
-            <div>
-              <h3 className="font-semibold mb-3">Date</h3>
-              <div className="space-y-2">
-                <div className="flex items-center">
-                  <Checkbox
-                    id="today"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="today" className="ml-2 text-sm">
-                    Today
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="tomorrow"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="tomorrow" className="ml-2 text-sm">
-                    Tomorrow
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="this-week"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="this-week" className="ml-2 text-sm">
-                    This Week
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="this-weekend"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="this-weekend" className="ml-2 text-sm">
-                    This Weekend
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="pick-date"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="pick-date" className="ml-2 text-sm">
-                    Pick a Date
-                  </label>
-                </div>
-              </div>
-              <button className="text-sm text-blue-300 mt-2">More</button>
-            </div>
-
-            {/* Category Filter */}
-            <div>
-              <h3 className="font-semibold mb-3">Category</h3>
-              <div className="space-y-2">
-                <div className="flex items-center">
-                  <Checkbox
-                    id="adventure"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="adventure" className="ml-2 text-sm">
-                    Adventure Travel
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="art"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="art" className="ml-2 text-sm">
-                    Art Exhibitions
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="auctions"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="auctions" className="ml-2 text-sm">
-                    Auctions & Fundraisers
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="beer"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="beer" className="ml-2 text-sm">
-                    Beer Festivals
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="benefit"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="benefit" className="ml-2 text-sm">
-                    Benefit Concerts
-                  </label>
-                </div>
-              </div>
-              <button className="text-sm text-blue-300 mt-2">More</button>
-            </div>
-
-            {/* Format Filter */}
-            <div>
-              <h3 className="font-semibold mb-3">Format</h3>
-              <div className="space-y-2">
-                <div className="flex items-center">
-                  <Checkbox
-                    id="community"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="community" className="ml-2 text-sm">
-                    Community Engagement
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="concerts"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="concerts" className="ml-2 text-sm">
-                    Concerts & Performances
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="conferences"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="conferences" className="ml-2 text-sm">
-                    Conferences
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="experiential"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="experiential" className="ml-2 text-sm">
-                    Experiential Events
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="festivals"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="festivals" className="ml-2 text-sm">
-                    Festivals & Fairs
-                  </label>
-                </div>
-              </div>
-              <button className="text-sm text-blue-300 mt-2">More</button>
-            </div>
-          </div>
-        </div>
+      {/* Category filters */}
+      <div className="mb-8 flex flex-wrap gap-2">
+        <button
+          onClick={() => handleCategoryChange(null)}
+          className={`px-4 py-2 rounded-full text-sm ${
+            selectedCategory === null ? "bg-blue-600 text-white" : "bg-gray-200 hover:bg-gray-300"
+          }`}
+        >
+          All
+        </button>
+        {categories.map((category) => (
+          <button
+            key={category.id}
+            onClick={() => handleCategoryChange(category.id)}
+            className={`px-4 py-2 rounded-full text-sm ${
+              selectedCategory === category.id ? "bg-blue-600 text-white" : "bg-gray-200 hover:bg-gray-300"
+            }`}
+          >
+            {category.name}
+          </button>
+        ))}
       </div>
 
-      {/* Events Grid */}
-      <div className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {events.map((event) => (
+      {/* Events grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {isLoading ? (
+          // Loading skeletons
+          Array.from({ length: 8 }).map((_, index) => (
+            <div key={index} className="bg-white rounded-lg shadow-sm overflow-hidden">
+              <Skeleton className="w-full h-48" />
+              <div className="p-4 space-y-2">
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+                <Skeleton className="h-4 w-2/3" />
+              </div>
+            </div>
+          ))
+        ) : events.length === 0 ? (
+          <div className="col-span-full text-center py-12">
+            <p className="text-gray-500">No events found</p>
+          </div>
+        ) : (
+          events.map((event) => (
             <EventCard
               key={event.id}
               id={event.id}
-              title={event.title}
-              image={event.image}
-              category={event.category}
-              date={event.date}
-              venue={event.venue}
-              time={event.time}
-              price={event.price}
-              interested={event.interested}
+              title={event.name}
+              image={event.profileImage || "/assets/images/event-placeholder.png"}
+              category={event.category?.name || "Uncategorized"}
+              date={{
+                month: new Date(event.dateTime).toLocaleString("en-US", { month: "short" }).toUpperCase(),
+                day: new Date(event.dateTime).getDate().toString(),
+              }}
+              venue={event.locationDesc}
+              time={new Date(event.dateTime).toLocaleString("en-US", {
+                hour: "numeric",
+                minute: "numeric",
+                hour12: true,
+              })}
+              price={0} // Assuming events are free or price is not in the model
+              interested={event._count?.interestedUsers || 0}
             />
-          ))}
-        </div>
-      </div>
-
-      {/* Pagination */}
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex justify-center items-center space-x-2">
-          <Button variant="outline" size="sm" className="px-3">
-            <span className="sr-only">First</span>
-            <span aria-hidden="true">« First</span>
-          </Button>
-          <Button variant="outline" size="sm" className="px-3">
-            <span className="sr-only">Previous</span>
-            <span aria-hidden="true">‹ Back</span>
-          </Button>
-          <Button variant="outline" size="sm" className="px-3">
-            1
-          </Button>
-          <Button variant="default" size="sm" className="px-3 bg-[#001337]">
-            2
-          </Button>
-          <Button variant="outline" size="sm" className="px-3">
-            3
-          </Button>
-          <Button variant="outline" size="sm" className="px-3">
-            4
-          </Button>
-          <span className="px-2">...</span>
-          <Button variant="outline" size="sm" className="px-3">
-            25
-          </Button>
-          <Button variant="outline" size="sm" className="px-3">
-            <span className="sr-only">Next</span>
-            <span aria-hidden="true">Next ›</span>
-          </Button>
-          <Button variant="outline" size="sm" className="px-3">
-            <span className="sr-only">Last</span>
-            <span aria-hidden="true">Last »</span>
-          </Button>
-        </div>
+          ))
+        )}
       </div>
     </div>
-  );
+  )
 }
