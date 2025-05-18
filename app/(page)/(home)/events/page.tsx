@@ -1,44 +1,62 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useSearchParams } from "next/navigation"
-import { getEvents, type Event } from "@/services/event-service"
-import { getCategories, type Category } from "@/services/category-service"
-import { EventCard } from "@/components/events/event-card"
-import { Skeleton } from "@/components/ui/skeleton"
+import React, { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { getEvents, type Event } from "@/services/event-service";
+import { getCategories, type Category } from "@/services/category-service";
+import { EventCard } from "@/components/events/event-card";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Helper function to ensure image paths are properly formatted
+function getValidImageSrc(src: string | undefined | null): string {
+  if (!src) return "/assets/images/event-placeholder.png";
+
+  // If it's already an absolute URL or starts with a slash, return as is
+  if (src.startsWith("http") || src.startsWith("/")) {
+    return src;
+  }
+
+  return `/assets/images/${src}`;
+}
 
 export default function EventsPage() {
-  const searchParams = useSearchParams()
-  const categoryId = searchParams.get("category")
+  const searchParams = useSearchParams();
+  const categoryId = searchParams.get("category");
 
-  const [events, setEvents] = useState<Event[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(categoryId)
-  const [isLoading, setIsLoading] = useState(true)
+  const [events, setEvents] = useState<Event[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(
+    categoryId
+  );
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
-      setIsLoading(true)
+      setIsLoading(true);
       try {
         const [eventsData, categoriesData] = await Promise.all([
-          getEvents(selectedCategory ? { categoryId: selectedCategory, status: "PUBLISHED" } : { status: "PUBLISHED" }),
+          getEvents(
+            selectedCategory
+              ? { categoryId: selectedCategory, status: "PUBLISHED" }
+              : { status: "PUBLISHED" }
+          ),
           getCategories(),
-        ])
-        setEvents(eventsData)
-        setCategories(categoriesData)
+        ]);
+        setEvents(eventsData);
+        setCategories(categoriesData);
       } catch (error) {
-        console.error("Error fetching data:", error)
+        console.error("Error fetching data:", error);
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
     }
 
-    fetchData()
-  }, [selectedCategory])
+    fetchData();
+  }, [selectedCategory]);
 
   const handleCategoryChange = (categoryId: string | null) => {
-    setSelectedCategory(categoryId)
-  }
+    setSelectedCategory(categoryId);
+  };
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -49,7 +67,9 @@ export default function EventsPage() {
         <button
           onClick={() => handleCategoryChange(null)}
           className={`px-4 py-2 rounded-full text-sm ${
-            selectedCategory === null ? "bg-blue-600 text-white" : "bg-gray-200 hover:bg-gray-300"
+            selectedCategory === null
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 hover:bg-gray-300"
           }`}
         >
           All
@@ -59,7 +79,9 @@ export default function EventsPage() {
             key={category.id}
             onClick={() => handleCategoryChange(category.id)}
             className={`px-4 py-2 rounded-full text-sm ${
-              selectedCategory === category.id ? "bg-blue-600 text-white" : "bg-gray-200 hover:bg-gray-300"
+              selectedCategory === category.id
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200 hover:bg-gray-300"
             }`}
           >
             {category.name}
@@ -72,7 +94,10 @@ export default function EventsPage() {
         {isLoading ? (
           // Loading skeletons
           Array.from({ length: 8 }).map((_, index) => (
-            <div key={index} className="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div
+              key={index}
+              className="bg-white rounded-lg shadow-sm overflow-hidden"
+            >
               <Skeleton className="w-full h-48" />
               <div className="p-4 space-y-2">
                 <Skeleton className="h-6 w-3/4" />
@@ -91,10 +116,12 @@ export default function EventsPage() {
               key={event.id}
               id={event.id}
               title={event.name}
-              image={event.profileImage || "/assets/images/event-placeholder.png"}
+              image={getValidImageSrc(event.profileImage)}
               category={event.category?.name || "Uncategorized"}
               date={{
-                month: new Date(event.dateTime).toLocaleString("en-US", { month: "short" }).toUpperCase(),
+                month: new Date(event.dateTime)
+                  .toLocaleString("en-US", { month: "short" })
+                  .toUpperCase(),
                 day: new Date(event.dateTime).getDate().toString(),
               }}
               venue={event.locationDesc}
@@ -103,12 +130,12 @@ export default function EventsPage() {
                 minute: "numeric",
                 hour12: true,
               })}
-              price={0} // Assuming events are free or price is not in the model
+              price={0}
               interested={event._count?.interestedUsers || 0}
             />
           ))
         )}
       </div>
     </div>
-  )
+  );
 }

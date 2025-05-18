@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 import { ArrowLeft, Calendar, Clock, MapPin, Share2, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useInterest } from "@/context/interest-context";
@@ -25,14 +25,15 @@ function getImagePath(src: string | undefined | null): string {
   return `/assets/images/${src}`;
 }
 
-interface EventParams {
-  id: string;
+interface PageProps {
+  params: {
+    id: string;
+  };
 }
 
-export default function EventDetailPage({ params }: { params: EventParams }) {
-  // Properly unwrap params using React.use()
-  const unwrappedParams = React.use(params) as EventParams;
-  const { id } = unwrappedParams;
+export default function EventDetailPage({ params }: PageProps) {
+  const resolvedParams = use(params as any) as { id: string };
+  const { id } = resolvedParams;
 
   const { isInterested, addInterest, removeInterest } = useInterest();
   const { user } = useAuth();

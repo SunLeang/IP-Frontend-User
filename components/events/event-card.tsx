@@ -1,58 +1,78 @@
-"use client"
+"use client";
 
-import type React from "react"
+import React from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { Star } from "lucide-react";
+import { useInterest } from "@/context/interest-context";
 
-import Image from "next/image"
-import Link from "next/link"
-import { Star } from "lucide-react"
-import { useInterest } from "@/context/interest-context"
+// Helper function for image paths
+function getValidImagePath(src: string | undefined | null): string {
+  if (!src) return "/assets/images/event-placeholder.png";
 
-interface EventCardProps {
-  id: string
-  title: string
-  image: string
-  category: string
-  date: {
-    month: string
-    day: string
+  if (src.startsWith("http") || src.startsWith("/")) {
+    return src;
   }
-  venue: string
-  time: string
-  price: number
-  interested: number
+
+  return `/assets/images/${src}`;
 }
 
-export function EventCard({ id, title, image, category, date, venue, time, price, interested }: EventCardProps) {
-  const { addInterest, removeInterest, isInterested } = useInterest()
-  const saved = isInterested(id)
+interface EventCardProps {
+  id: string;
+  title: string;
+  image: string | undefined | null;
+  category: string;
+  date: {
+    month: string;
+    day: string;
+  };
+  venue: string;
+  time: string;
+  price: number;
+  interested: number;
+}
+
+export function EventCard({
+  id,
+  title,
+  image,
+  category,
+  date,
+  venue,
+  time,
+  price,
+  interested,
+}: EventCardProps) {
+  const { addInterest, removeInterest, isInterested } = useInterest();
+  const saved = isInterested(id);
 
   const handleInterestToggle = (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
+    e.preventDefault();
+    e.stopPropagation();
 
     if (saved) {
-      removeInterest(id)
+      removeInterest(id);
     } else {
       addInterest({
         id,
         title,
-        image,
+        image: image || "",
         category,
         date,
         venue,
         time,
         price,
         interested,
-      })
+      });
     }
-  }
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden">
       <Link href={`/events/${id}`} className="block">
         <div className="relative">
           <Image
-            src={image || "/placeholder.svg?height=200&width=400"}
+            src={getValidImagePath(image)}
             alt={title}
             width={400}
             height={200}
@@ -65,26 +85,42 @@ export function EventCard({ id, title, image, category, date, venue, time, price
             className="absolute top-2 right-2 bg-white p-1 rounded-full hover:bg-gray-100"
             onClick={handleInterestToggle}
           >
-            <Star className={`h-5 w-5 ${saved ? "fill-yellow-400 text-yellow-400" : "text-gray-400"}`} />
+            <Star
+              className={`h-5 w-5 ${
+                saved ? "fill-yellow-400 text-yellow-400" : "text-gray-400"
+              }`}
+            />
           </button>
         </div>
 
         <div className="p-4">
           <div className="flex gap-4">
             <div className="text-center">
-              <div className="text-xs font-semibold text-blue-600">{date.month}</div>
+              <div className="text-xs font-semibold text-blue-600">
+                {date.month}
+              </div>
               <div className="text-2xl font-bold text-blue-600">{date.day}</div>
             </div>
 
             <div className="flex-1">
-              <h3 className="font-medium text-lg hover:text-blue-600 transition-colors line-clamp-2">{title}</h3>
+              <h3 className="font-medium text-lg hover:text-blue-600 transition-colors line-clamp-2">
+                {title}
+              </h3>
               <p className="text-sm text-gray-500 mt-1">{venue}</p>
               <p className="text-xs text-gray-400 mt-0.5">{time}</p>
 
               <div className="flex items-center justify-between mt-2">
-                <div className="text-sm font-medium">{price > 0 ? `USD ${price.toFixed(2)}` : "Free"}</div>
+                <div className="text-sm font-medium">
+                  {price > 0 ? `USD ${price.toFixed(2)}` : "Free"}
+                </div>
                 <div className="flex items-center text-xs text-gray-500">
-                  <Star className={`h-4 w-4 mr-1 ${saved ? "fill-yellow-400 text-yellow-400" : "text-gray-400"}`} />
+                  <Star
+                    className={`h-4 w-4 mr-1 ${
+                      saved
+                        ? "fill-yellow-400 text-yellow-400"
+                        : "text-gray-400"
+                    }`}
+                  />
                   <span>{interested} interested</span>
                 </div>
               </div>
@@ -93,5 +129,5 @@ export function EventCard({ id, title, image, category, date, venue, time, price
         </div>
       </Link>
     </div>
-  )
+  );
 }

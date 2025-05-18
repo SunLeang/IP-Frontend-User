@@ -1,16 +1,22 @@
-"use client"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import Image from "next/image"
-import { Calendar, Check, Clock, MapPin } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { HeroSection } from "@/components/hero-section"
+"use client";
+import { useState, use } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
+import { Calendar, Check, Clock, MapPin } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { HeroSection } from "@/components/hero-section";
 
-export default function VolunteerDetailPage({ params }: { params: { id: string } }) {
-  const { id } = params
-  const router = useRouter()
-  const [isApplied, setIsApplied] = useState(false)
+export default function VolunteerDetailPage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  const resolvedParams = use(params as any) as { id: string };
+  const { id } = resolvedParams;
+
+  const router = useRouter();
+  const [isApplied, setIsApplied] = useState(false);
 
   // Sample volunteer opportunity data
   const volunteer = {
@@ -23,7 +29,8 @@ export default function VolunteerDetailPage({ params }: { params: { id: string }
       year: "2025",
     },
     time: "5:00 PM - 9:30 PM",
-    description: "Volunteer for Our Book Fair - Make a Difference & Enjoy Great Perks!",
+    description:
+      "Volunteer for Our Book Fair - Make a Difference & Enjoy Great Perks!",
     details: `We're looking for enthusiastic volunteers to help make our upcoming Book Fair a success! As a volunteer, you'll assist with event setup, book organization, customer support, and various other tasks to create a wonderful experience for book lovers.`,
     benefits: [
       "Free Meals & Refreshments – Stay energized while you work!",
@@ -32,7 +39,8 @@ export default function VolunteerDetailPage({ params }: { params: { id: string }
       "Certificate of Appreciation – A valuable addition to your resume and future applications.",
       "Fun & Fulfilling Experience – Be part of a community-driven event that promotes reading and learning!",
     ],
-    callToAction: "Join us in making this event special while enjoying great perks. Apply today! 🎉💕",
+    callToAction:
+      "Join us in making this event special while enjoying great perks. Apply today! 🎉💕",
     requirements: {
       title: "Volunteer Requirements:",
       list: [
@@ -53,12 +61,12 @@ export default function VolunteerDetailPage({ params }: { params: { id: string }
       name: "Jeffrey Zin",
       image: "/assets/images/avatar.png",
     },
-  }
+  };
 
   const handleApply = () => {
     // Redirect to application form
-    router.push(`/volunteer/apply/${id}`)
-  }
+    router.push(`/volunteer/apply/${id}`);
+  };
 
   return (
     <div className="min-h-screen bg-white pb-10">
@@ -75,7 +83,8 @@ export default function VolunteerDetailPage({ params }: { params: { id: string }
           <div className="flex items-start mb-2">
             <Calendar className="h-5 w-5 mr-3 mt-0.5 text-gray-500" />
             <span>
-              {volunteer.date.day}, {volunteer.date.date} {volunteer.date.month} {volunteer.date.year}
+              {volunteer.date.day}, {volunteer.date.date} {volunteer.date.month}{" "}
+              {volunteer.date.year}
             </span>
           </div>
           <div className="flex items-start mb-2">
@@ -146,7 +155,13 @@ export default function VolunteerDetailPage({ params }: { params: { id: string }
           <div className="flex items-center">
             <div className="flex items-center">
               <div className="w-10 h-10 mr-3">
-                <Image src="/assets/images/logo.png" alt="Eventura" width={40} height={40} className="rounded-sm" />
+                <Image
+                  src="/assets/images/logo.png"
+                  alt="Eventura"
+                  width={40}
+                  height={40}
+                  className="rounded-sm"
+                />
               </div>
               <div>
                 <p className="font-medium">{volunteer.host.name}</p>
@@ -157,7 +172,10 @@ export default function VolunteerDetailPage({ params }: { params: { id: string }
 
         {/* Apply Button - Fixed at bottom on mobile */}
         <div className="fixed bottom-0 left-0 right-0 bg-white p-4 border-t md:relative md:border-0 md:p-0 md:mt-8">
-          <Button onClick={handleApply} className="w-full py-6 bg-green-500 hover:bg-green-600">
+          <Button
+            onClick={handleApply}
+            className="w-full py-6 bg-green-500 hover:bg-green-600"
+          >
             Apply Now
           </Button>
         </div>
@@ -166,5 +184,5 @@ export default function VolunteerDetailPage({ params }: { params: { id: string }
         <div className="h-20 md:h-0"></div>
       </div>
     </div>
-  )
+  );
 }
