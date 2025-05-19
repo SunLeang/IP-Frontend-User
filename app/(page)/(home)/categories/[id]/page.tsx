@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 // Helper function to ensure image paths are properly formatted
 function getValidImageSrc(src: string | undefined | null): string {
@@ -14,6 +14,18 @@ function getValidImageSrc(src: string | undefined | null): string {
   return `/assets/images/${src}`;
 }
 
+interface Category {
+  id: string;
+  name: string;
+  image?: string | null;
+  description?: string;
+}
+
+interface Event {
+  id: string;
+  title: string;
+}
+
 interface CategoryPageProps {
   params: {
     id: string;
@@ -23,10 +35,9 @@ interface CategoryPageProps {
 export default function CategoryPage({ params }: CategoryPageProps) {
   const { id } = params;
 
-  const [category, setCategory] = useState<any>(null);
-  const [events, setEvents] = useState<any[]>([]);
+  const [category, setCategory] = useState<Category | null>(null);
+  const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
     const fetchCategoryAndEvents = async () => {
@@ -71,7 +82,13 @@ export default function CategoryPage({ params }: CategoryPageProps) {
         <>
           <h1>{category.name}</h1>
           {categoryImageSrc && (
-            <img src={categoryImageSrc} alt={category.name} />
+            <Image
+              src={categoryImageSrc}
+              alt={category.name}
+              width={500}
+              height={300}
+              className="w-full h-auto object-cover"
+            />
           )}
           <p>{category.description}</p>
 
@@ -81,7 +98,6 @@ export default function CategoryPage({ params }: CategoryPageProps) {
               {events.map((event) => (
                 <div key={event.id} className="event-card">
                   <h3>{event.title}</h3>
-                  {/* Add more event details as needed */}
                 </div>
               ))}
             </div>

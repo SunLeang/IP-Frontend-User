@@ -30,8 +30,9 @@ export default function LoginPage() {
     try {
       await login(email, password)
       router.push("/") // Redirect to homepage after login
-    } catch (err: any) {
-      setError(err.message || "Login failed. Please check your credentials.")
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Login failed. Please check your credentials."
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -153,7 +154,7 @@ export default function LoginPage() {
 
           <div className="text-center pt-2">
             <p className="text-sm text-center text-gray-600">
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
               <Link href="/signup" className="text-blue-600 hover:underline">
                 Sign up
               </Link>

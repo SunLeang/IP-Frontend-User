@@ -1,5 +1,5 @@
-import Image from "next/image"
-import officeImage from "@/assets/images/office-image.png"
+import Image from "next/image";
+import officeImage from "@/assets/images/office-image.png";
 
 export default function ContactUs() {
   return (
@@ -17,23 +17,27 @@ export default function ContactUs() {
                 <br />
                 Our experts are available to answer any questions you
                 <br />
-                might have. We've got the answers.
+                might have. We&apos;ve got the answers.
               </p>
             </div>
 
             {/* VISIT US */}
             <div>
               <h2 className="text-xl font-bold text-gray-900">VISIT US</h2>
-              <p className="mt-2 text-gray-700">Russian Civil Nordstrom Boulevard, Phnom Penh</p>
-              <p className="mt-4 text-gray-700">Feel free to get in touch with us through our channels:</p>
+              <p className="mt-2 text-gray-700">
+                Russian Civil Nordstrom Boulevard, Phnom Penh
+              </p>
+              <p className="mt-4 text-gray-700">
+                Feel free to get in touch with us through our channels:
+              </p>
             </div>
-            
+
             {/* EMAIL US */}
             <div>
               <h2 className="text-xl font-bold text-gray-900">EMAIL US</h2>
               <p className="mt-2 text-gray-700">eventura@gmail.com</p>
             </div>
-            
+
             {/* CALL US */}
             <div>
               <h2 className="text-xl font-bold text-gray-900">CALL US</h2>
@@ -44,10 +48,16 @@ export default function ContactUs() {
               </p>
             </div>
           </div>
-          
+
           {/* Image office */}
           <div className="relative h-[400px] md:h-full">
-            <Image src={officeImage} alt="Eventura Office" fill className="object-cover rounded-md" priority />
+            <Image
+              src={officeImage}
+              alt="Eventura Office"
+              fill
+              className="object-cover rounded-md"
+              priority
+            />
           </div>
         </div>
       </section>
@@ -61,7 +71,7 @@ export default function ContactUs() {
               <h2 className="text-3xl font-bold">
                 Have a project!
                 <br />
-                Let's diascuss
+                Let&apos;s diascuss
               </h2>
               <div className="space-y-2">
                 <p>Thank you for getting in touch!</p>
@@ -109,7 +119,13 @@ export default function ContactUs() {
                     <option value="other">Other</option>
                   </select>
                   <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                    <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg
+                      width="12"
+                      height="8"
+                      viewBox="0 0 12 8"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
                       <path
                         d="M1 1L6 6L11 1"
                         stroke="white"
@@ -141,7 +157,13 @@ export default function ContactUs() {
                     <option value="other">Other</option>
                   </select>
                   <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                    <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg
+                      width="12"
+                      height="8"
+                      viewBox="0 0 12 8"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
                       <path
                         d="M1 1L6 6L11 1"
                         stroke="white"
@@ -188,5 +210,5 @@ export default function ContactUs() {
         ></iframe>
       </section>
     </main>
-  )
+  );
 }
