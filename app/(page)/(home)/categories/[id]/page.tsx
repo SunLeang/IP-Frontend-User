@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
+import { use } from "react"; // Make sure to import use
 
 // Helper function to ensure image paths are properly formatted
 function getValidImageSrc(src: string | undefined | null): string {
@@ -26,14 +27,19 @@ interface Event {
   title: string;
 }
 
-interface CategoryPageProps {
-  params: {
-    id: string;
-  };
+// Define proper types
+interface CategoryPageParams {
+  id: string;
 }
 
-export default function CategoryPage({ params }: CategoryPageProps) {
-  const { id } = params;
+// Use this interface for your component props
+interface PageProps {
+  params: Promise<CategoryPageParams>;
+}
+
+export default function CategoryPage({ params }: PageProps) {
+  const resolvedParams = use(params);
+  const { id } = resolvedParams;
 
   const [category, setCategory] = useState<Category | null>(null);
   const [events, setEvents] = useState<Event[]>([]);

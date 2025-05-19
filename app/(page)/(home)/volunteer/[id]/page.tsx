@@ -1,5 +1,5 @@
 "use client";
-import { useState, use } from "react";
+import { use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -12,11 +12,10 @@ export default function VolunteerDetailPage({
 }: {
   params: { id: string };
 }) {
-  const resolvedParams = use(params as any) as { id: string };
+  const resolvedParams = use(params as unknown as Promise<{ id: string }>);
   const { id } = resolvedParams;
 
   const router = useRouter();
-  const [isApplied, setIsApplied] = useState(false);
 
   // Sample volunteer opportunity data
   const volunteer = {

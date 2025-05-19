@@ -70,7 +70,7 @@ export default function VolunteerRoleDashboardPage() {
         {/* Event Banner */}
         <div className="bg-blue-50 py-6">
           <div className="container mx-auto px-4">
-            <h1 className="text-2xl font-bold mb-4">You're volunteering for BookFair Event</h1>
+            <h1 className="text-2xl font-bold mb-4">You&apos;re volunteering for BookFair Event</h1>
             <div className="relative w-full h-[200px] md:h-[250px] rounded-lg overflow-hidden">
               <Image
                 src="/assets/images/prom-night.png"

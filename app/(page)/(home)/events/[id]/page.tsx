@@ -53,14 +53,13 @@ interface EventData {
   };
 }
 
+// Update this interface
 interface PageProps {
-  params: {
-    id: string;
-  };
+  params: Promise<{ id: string }>;
 }
 
 export default function EventDetailPage({ params }: PageProps) {
-  const resolvedParams = use(params as unknown as Promise<{ id: string }>);
+  const resolvedParams = use(params);
   const { id } = resolvedParams;
 
   const { isInterested, addInterest, removeInterest } = useInterest();
@@ -217,7 +216,8 @@ export default function EventDetailPage({ params }: PageProps) {
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Event not found</h1>
           <p className="mb-6">
-            The event you&apos;re looking for doesn&apos;t exist or has been removed.
+            The event you&apos;re looking for doesn&apos;t exist or has been
+            removed.
           </p>
           <Link href="/events">
             <Button>Back to Events</Button>

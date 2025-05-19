@@ -14,7 +14,7 @@ export default function UnauthorizedPage() {
         <h1 className="text-3xl font-bold text-red-600 mb-4">Access Denied</h1>
 
         <div className="bg-red-50 p-4 rounded-md mb-6">
-          <p className="text-red-800">You don't have permission to access this page.</p>
+          <p className="text-red-800">You don&apos;t have permission to access this page.</p>
         </div>
 
         <p className="mb-6 text-gray-600">

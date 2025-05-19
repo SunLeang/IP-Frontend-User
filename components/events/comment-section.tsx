@@ -1,41 +1,44 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Image from "next/image"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
+import { useState } from "react";
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Comment {
-  id: string
+  id: string;
   user: {
-    name: string
-    image: string
-    time: string
-  }
-  rating: number
-  text: string
-  replies?: Comment[]
+    name: string;
+    image: string;
+    time: string;
+  };
+  rating: number;
+  text: string;
+  replies?: Comment[];
 }
 
 interface CommentSectionProps {
-  comments: Comment[]
-  totalComments: number
+  comments: Comment[];
+  totalComments: number;
 }
 
-export function CommentSection({ comments, totalComments }: CommentSectionProps) {
-  const [newComment, setNewComment] = useState("")
-  const [currentPage, setCurrentPage] = useState(1)
+export function CommentSection({
+  comments,
+  totalComments,
+}: CommentSectionProps) {
+  const [newComment, setNewComment] = useState("");
 
   const handleSubmitComment = () => {
-    if (!newComment.trim()) return
-    // Here you would normally submit the comment to your backend
-    console.log("Submitting comment:", newComment)
-    setNewComment("")
-  }
+    if (!newComment.trim()) return;
+    console.log("Submitting comment:", newComment);
+    setNewComment("");
+  };
 
   return (
     <div className="mt-8">
-      <h2 className="text-xl font-bold mb-4">Comment and Review ({totalComments})</h2>
+      <h2 className="text-xl font-bold mb-4">
+        Comment and Review ({totalComments})
+      </h2>
 
       {/* Comments list */}
       <div className="space-y-4 mb-6">
@@ -54,7 +57,10 @@ export function CommentSection({ comments, totalComments }: CommentSectionProps)
         />
         <div className="flex justify-end gap-2">
           <Button variant="outline">Cancel</Button>
-          <Button className="bg-green-500 hover:bg-green-600" onClick={handleSubmitComment}>
+          <Button
+            className="bg-green-500 hover:bg-green-600"
+            onClick={handleSubmitComment}
+          >
             Post
           </Button>
         </div>
@@ -86,7 +92,7 @@ export function CommentSection({ comments, totalComments }: CommentSectionProps)
         </Button>
       </div>
     </div>
-  )
+  );
 }
 
 function CommentCard({ comment }: { comment: Comment }) {
@@ -109,7 +115,12 @@ function CommentCard({ comment }: { comment: Comment }) {
           {comment.rating > 0 && (
             <div className="flex text-yellow-400 my-1">
               {Array.from({ length: 5 }).map((_, i) => (
-                <span key={i} className={i < comment.rating ? "text-yellow-400" : "text-gray-300"}>
+                <span
+                  key={i}
+                  className={
+                    i < comment.rating ? "text-yellow-400" : "text-gray-300"
+                  }
+                >
                   ★
                 </span>
               ))}
@@ -143,14 +154,24 @@ function CommentCard({ comment }: { comment: Comment }) {
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{reply.user.name}</span>
-                        <span className="text-xs text-gray-500">{reply.user.time}</span>
+                        <span className="text-xs text-gray-500">
+                          {reply.user.time}
+                        </span>
                       </div>
                       <p className="text-gray-700 mt-1">{reply.text}</p>
                       <div className="flex justify-end mt-2">
-                        <Button variant="link" size="sm" className="text-blue-600">
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="text-blue-600"
+                        >
                           Reply
                         </Button>
-                        <Button variant="link" size="sm" className="text-blue-600">
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="text-blue-600"
+                        >
                           Read More
                         </Button>
                       </div>
@@ -163,5 +184,5 @@ function CommentCard({ comment }: { comment: Comment }) {
         </div>
       </div>
     </div>
-  )
+  );
 }

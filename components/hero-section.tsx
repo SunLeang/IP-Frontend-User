@@ -10,7 +10,7 @@ export function HeroSection() {
       style={{ backgroundImage: "url('/assets/images/banner.png')" }}
     >
       <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-center px-4">
-        <h1 className="text-4xl font-bold text-white">Don't miss out!</h1>
+        <h1 className="text-4xl font-bold text-white">Don&apos;t miss out!</h1>
         <h2 className="text-2xl text-white mt-2">
           Explore the <span className="text-yellow-400">vibrant events</span> happening right now.
         </h2>

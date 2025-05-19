@@ -1,50 +1,100 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { X } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react";
+import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 interface SwitchRolesModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onSelectRole: (role: string) => void
-  currentRole?: string
+  isOpen: boolean;
+  onClose: () => void;
+  onSelectRole: (role: string) => void;
+  currentRole?: string;
 }
 
-export function SwitchRolesModal({ isOpen, onClose, onSelectRole }: SwitchRolesModalProps) {
-  const [mounted, setMounted] = useState(false)
-  const router = useRouter()
+export function SwitchRolesModal({
+  isOpen,
+  onClose,
+  onSelectRole,
+}: SwitchRolesModalProps) {
+  const [mounted, setMounted] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
-    setMounted(true)
+    setMounted(true);
 
     if (isOpen) {
-      document.body.style.overflow = "hidden"
+      document.body.style.overflow = "hidden";
     }
 
     return () => {
-      document.body.style.overflow = "auto"
-    }
-  }, [isOpen])
+      document.body.style.overflow = "auto";
+    };
+  }, [isOpen]);
 
   const roles = [
-    { id: "ATTENDEE", name: "Attendee", description: "Participate in events" },
-    { id: "VOLUNTEER", name: "Volunteer", description: "Help organize and run events" },
-  ]
+    {
+      id: "attendee",
+      name: "User (Attendee)",
+      description: "Participate in events",
+      icon: (
+        <div className="bg-blue-500 rounded-full p-1 mr-3">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+        </div>
+      ),
+    },
+    {
+      id: "volunteer",
+      name: "Volunteer",
+      description: "Help organize and run events",
+      icon: (
+        <div className="bg-gray-600 rounded-full p-1 mr-3">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M7 11v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-8" />
+            <path d="M18 7v4H6V7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1z" />
+            <path d="M12 6V3" />
+            <path d="M10 9h4" />
+          </svg>
+        </div>
+      ),
+    },
+  ];
 
   const handleSelectRole = (role: string) => {
-    onSelectRole(role)
+    onSelectRole(role);
 
     // Redirect based on role
     if (role === "volunteer") {
-      router.push("/volunteer-role/dashboard")
+      router.push("/volunteer-role/dashboard");
     } else if (role === "attendee") {
-      router.push("/")
+      router.push("/");
     }
-  }
+  };
 
-  if (!mounted || !isOpen) return null
+  if (!mounted || !isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-end bg-black/50">
@@ -57,55 +107,18 @@ export function SwitchRolesModal({ isOpen, onClose, onSelectRole }: SwitchRolesM
         </div>
 
         <div className="p-6 space-y-4">
-          <Button
-            onClick={() => handleSelectRole("attendee")}
-            className="w-full justify-start bg-white hover:bg-gray-100 text-black h-14 text-lg"
-          >
-            <div className="bg-blue-500 rounded-full p-1 mr-3">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-            </div>
-            User (Attendee)
-          </Button>
-
-          <Button
-            onClick={() => handleSelectRole("volunteer")}
-            className="w-full justify-start bg-white hover:bg-gray-100 text-black h-14 text-lg"
-          >
-            <div className="bg-gray-600 rounded-full p-1 mr-3">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M7 11v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-8" />
-                <path d="M18 7v4H6V7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1z" />
-                <path d="M12 6V3" />
-                <path d="M10 9h4" />
-              </svg>
-            </div>
-            Volunteer
-          </Button>
+          {roles.map((role) => (
+            <Button
+              key={role.id}
+              onClick={() => handleSelectRole(role.id)}
+              className="w-full justify-start bg-white hover:bg-gray-100 text-black h-14 text-lg"
+            >
+              {role.icon}
+              {role.name}
+            </Button>
+          ))}
         </div>
       </div>
     </div>
-  )
+  );
 }

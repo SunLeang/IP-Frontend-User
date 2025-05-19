@@ -76,7 +76,7 @@ Bring your family and friends and sing along your favourite Christmas carols on 
     <div className="min-h-screen bg-white pb-10">
       <div className="container mx-auto px-4 py-6">
         {/* Event Title */}
-        <h1 className="text-xl font-bold mb-4">You're volunteering for BookFair Event</h1>
+        <h1 className="text-xl font-bold mb-4">You&apos;re volunteering for BookFair Event</h1>
 
         {/* Tabs */}
         <div className="flex justify-center mb-6">

@@ -1,15 +1,12 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Image from "next/image"
-import Link from "next/link"
-import { Star, Users, ChevronLeft, ChevronRight } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import Image from "next/image";
+import Link from "next/link";
+import { Star, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 export default function VolunteerHistoryPage() {
-  const [currentPage, setCurrentPage] = useState(2)
-
   // Sample past events data
   const pastEvents = [
     {
@@ -84,11 +81,7 @@ export default function VolunteerHistoryPage() {
       interested: 45,
       status: "Ended",
     },
-  ]
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page)
-  }
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -108,23 +101,37 @@ export default function VolunteerHistoryPage() {
                     height={200}
                     className="w-full h-48 object-cover"
                   />
-                  <Badge className="absolute top-2 right-2 bg-red-500 text-white">{event.status}</Badge>
+                  <Badge className="absolute top-2 right-2 bg-red-500 text-white">
+                    {event.status}
+                  </Badge>
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
-                    <Badge className="bg-yellow-400 text-black font-medium">{event.category}</Badge>
+                    <Badge className="bg-yellow-400 text-black font-medium">
+                      {event.category}
+                    </Badge>
                   </div>
                 </div>
 
                 <div className="p-4">
                   <div className="flex gap-3">
                     <div className="text-center">
-                      <div className="text-sm font-semibold text-blue-600">{event.date.month}</div>
-                      <div className="text-2xl font-bold text-blue-600">{event.date.day}</div>
+                      <div className="text-sm font-semibold text-blue-600">
+                        {event.date.month}
+                      </div>
+                      <div className="text-2xl font-bold text-blue-600">
+                        {event.date.day}
+                      </div>
                     </div>
 
                     <div className="flex-1">
-                      <h3 className="font-medium line-clamp-2">{event.title}</h3>
-                      <p className="text-sm text-gray-500 mt-1">{event.venue}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{event.time}</p>
+                      <h3 className="font-medium line-clamp-2">
+                        {event.title}
+                      </h3>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {event.venue}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {event.time}
+                      </p>
 
                       <div className="flex items-center justify-between mt-2">
                         <div className="flex items-center text-xs text-gray-500">
@@ -184,5 +191,5 @@ export default function VolunteerHistoryPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

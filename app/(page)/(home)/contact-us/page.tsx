@@ -109,10 +109,11 @@ export default function ContactUs() {
                   />
                 </div>
                 <div className="relative">
-                  <select className="w-full bg-transparent border-b border-white/50 py-2 px-1 focus:outline-none focus:border-white appearance-none text-white/70">
-                    <option value="" disabled selected hidden>
-                      Country
-                    </option>
+                  <select 
+                    defaultValue="" 
+                    className="w-full bg-transparent border-b border-white/50 py-2 px-1 focus:outline-none focus:border-white appearance-none text-white/70"
+                  >
+                    <option value="" disabled hidden>Country</option>
                     <option value="cambodia">Cambodia</option>
                     <option value="thailand">Thailand</option>
                     <option value="vietnam">Vietnam</option>
@@ -147,10 +148,11 @@ export default function ContactUs() {
                   />
                 </div>
                 <div className="relative">
-                  <select className="w-full bg-transparent border-b border-white/50 py-2 px-1 focus:outline-none focus:border-white appearance-none text-white/70">
-                    <option value="" disabled selected hidden>
-                      Interested in
-                    </option>
+                  <select 
+                    defaultValue="" 
+                    className="w-full bg-transparent border-b border-white/50 py-2 px-1 focus:outline-none focus:border-white appearance-none text-white/70"
+                  >
+                    <option value="" disabled hidden>Interested in</option>
                     <option value="web">Web Development</option>
                     <option value="mobile">Mobile App</option>
                     <option value="design">UI/UX Design</option>
