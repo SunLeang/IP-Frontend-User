@@ -1,7 +1,15 @@
 "use client";
 
-import React, { useState, useEffect, use } from "react";
-import { ArrowLeft, Calendar, Clock, MapPin, Share2, Star } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import {
+  ArrowLeft,
+  Calendar,
+  Clock,
+  MapPin,
+  Share2,
+  Star,
+  UserPlus,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useInterest } from "@/context/interest-context";
 import Link from "next/link";
@@ -12,6 +20,7 @@ import { CommentSection } from "@/components/events/comment-section";
 import { getEventById, joinEvent, leaveEvent } from "@/services/event-service";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/context/auth-context";
+import { use } from "react";
 
 // Helper function to ensure image paths are properly formatted
 function getImagePath(src: string | undefined | null): string {
@@ -25,6 +34,25 @@ function getImagePath(src: string | undefined | null): string {
   return `/assets/images/${src}`;
 }
 
+interface EventData {
+  id: string;
+  name: string;
+  dateTime: string;
+  profileImage?: string | null;
+  coverImage?: string | null;
+  description: string;
+  locationDesc: string;
+  locationImage?: string | null;
+  category?: { name: string };
+  organizer?: { fullName: string };
+  acceptingVolunteers?: boolean;
+  _count?: {
+    interestedUsers?: number;
+    attendingUsers?: number;
+    volunteers?: number;
+  };
+}
+
 interface PageProps {
   params: {
     id: string;
@@ -32,18 +60,25 @@ interface PageProps {
 }
 
 export default function EventDetailPage({ params }: PageProps) {
-  const resolvedParams = use(params as any) as { id: string };
+  const resolvedParams = use(params as unknown as Promise<{ id: string }>);
   const { id } = resolvedParams;
 
   const { isInterested, addInterest, removeInterest } = useInterest();
   const { user } = useAuth();
-  const [event, setEvent] = useState<any>(null);
+  const [event, setEvent] = useState<EventData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isJoined, setIsJoined] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showRating, setShowRating] = useState(false);
   const [eventEnded, setEventEnded] = useState(false);
-  const [comments, setComments] = useState([]);
+  const [comments] = useState<
+    Array<{
+      id: string;
+      user: { name: string; image: string; time: string };
+      rating: number;
+      text: string;
+    }>
+  >([]);
   const saved = isInterested(id);
 
   useEffect(() => {
@@ -182,7 +217,7 @@ export default function EventDetailPage({ params }: PageProps) {
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Event not found</h1>
           <p className="mb-6">
-            The event you're looking for doesn't exist or has been removed.
+            The event you&apos;re looking for doesn&apos;t exist or has been removed.
           </p>
           <Link href="/events">
             <Button>Back to Events</Button>
@@ -360,22 +395,7 @@ export default function EventDetailPage({ params }: PageProps) {
                   onClick={handleJoinClick}
                   className="w-full py-6 bg-green-500 hover:bg-green-600 flex items-center justify-center gap-2"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <line x1="19" x2="19" y1="8" y2="14"></line>
-                    <line x1="22" x2="16" y1="11" y2="11"></line>
-                  </svg>
+                  <UserPlus className="h-6 w-6" />
                   Join event
                 </Button>
               )}

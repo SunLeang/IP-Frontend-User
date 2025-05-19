@@ -27,7 +27,7 @@ export default function InterestPage() {
 
         {interestedEvents.length === 0 ? (
           <div className="text-center py-20">
-            <h2 className="text-xl font-medium text-gray-600 mb-4">You haven't marked any events as interested yet</h2>
+            <h2 className="text-xl font-medium text-gray-600 mb-4">You haven&apos;t marked any events as interested yet</h2>
             <p className="text-gray-500 mb-6">Browse events and click the star icon to add them to your interests</p>
             <Button asChild>
               <Link href="/events">Browse Events</Link>

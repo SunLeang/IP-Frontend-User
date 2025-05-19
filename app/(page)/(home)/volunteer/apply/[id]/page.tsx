@@ -98,8 +98,6 @@ export default function VolunteerApplicationPage({
   };
 
   const handleSubmit = () => {
-    // Here you would normally submit the form data to your backend
-    // For demo purposes, we'll simulate a successful submission
     try {
       // Simulate API call
       console.log("Form submitted:", { ...formData, files });
@@ -125,8 +123,7 @@ export default function VolunteerApplicationPage({
 
       // If everything is valid, show success modal
       setShowSuccessModal(true);
-    } catch (error) {
-      // Show error modal if submission fails
+    } catch { 
       setErrorMessage("Something went wrong. Please try again.");
       setShowErrorModal(true);
     }

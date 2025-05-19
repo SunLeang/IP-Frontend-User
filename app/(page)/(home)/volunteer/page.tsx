@@ -1,5 +1,4 @@
 "use client";
-import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -7,8 +6,6 @@ import { Checkbox } from "@/components/checkbox";
 import { HeroSection } from "@/components/hero-section";
 
 export default function VolunteerPage() {
-  const [currentPage, setCurrentPage] = useState(1);
-
   // Sample volunteer opportunities data
   const volunteerOpportunities = Array.from({ length: 9 }, (_, i) => ({
     id: `volunteer-${i + 1}`,
@@ -272,8 +269,23 @@ export default function VolunteerPage() {
   );
 }
 
+// Define a proper interface for the opportunity object
+interface VolunteerOpportunity {
+  id: string;
+  title: string;
+  image?: string;
+  category: string;
+  date: {
+    month: string;
+    day: string;
+  };
+  venue: string;
+  time: string;
+  applicants: number;
+}
+
 // Volunteer Card Component
-function VolunteerCard({ opportunity }: { opportunity: any }) {
+function VolunteerCard({ opportunity }: { opportunity: VolunteerOpportunity }) {
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-100">
       <div className="relative">
