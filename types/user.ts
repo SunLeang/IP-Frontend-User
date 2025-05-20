@@ -10,15 +10,15 @@ export enum CurrentRole {
 }
 
 export interface User {
-  id: string
-  email: string
-  username?: string
-  fullName: string
-  gender?: string
-  age?: number
-  org?: string
-  systemRole: SystemRole
-  currentRole: CurrentRole
-  createdAt?: string
-  updatedAt?: string
+  id: string;
+  email: string;
+  username?: string;
+  fullName: string;
+  gender?: string;
+  age?: number; 
+  org?: string; 
+  systemRole: SystemRole;
+  currentRole: CurrentRole;
+  createdAt?: string;
+  updatedAt?: string;
 }

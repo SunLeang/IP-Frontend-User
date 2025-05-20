@@ -1,22 +1,38 @@
 "use client";
-import { useState } from "react";
-import type React from "react";
-import { useRouter } from "next/navigation";
 
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import React from "react";
 import Image from "next/image";
 import { ArrowLeft, Check, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { getEventById } from "@/services/event-service";
+import { applyForVolunteer } from "@/services/volunteer-service";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/context/auth-context";
+
+// Helper function to ensure image paths are properly formatted
+function getValidImageSrc(src: string | undefined | null): string {
+  if (!src) return "/assets/images/event-placeholder.png";
+
+  if (src.startsWith("http") || src.startsWith("/")) {
+    return src;
+  }
+
+  return `/assets/images/${src}`;
+}
 
 export default function VolunteerApplicationPage({
   params,
 }: {
   params: { id: string };
 }) {
-  const { id } = params;
+  const { id } = React.use(params as unknown as Promise<{ id: string }>);
   const router = useRouter();
+  const { isAuthenticated, user } = useAuth();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     fullName: "",
@@ -33,13 +49,52 @@ export default function VolunteerApplicationPage({
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [event, setEvent] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Sample event data
-  const event = {
-    id,
-    title: "Sound of eventura event",
-    image: "/assets/images/event-melody.jpg",
-  };
+  // Fetch event data on mount
+  useEffect(() => {
+    const fetchEvent = async () => {
+      setIsLoading(true);
+      try {
+        const eventData = await getEventById(id);
+        if (eventData) {
+          setEvent(eventData);
+
+          // Pre-fill form data if user is logged in
+          if (user) {
+            setFormData((prevData) => ({
+              ...prevData,
+              fullName: user.fullName || "",
+              gender: user.gender || "",
+              age: user.age?.toString() || "",
+              organization: user.org || "",
+            }));
+          }
+        } else {
+          setErrorMessage("Event not found");
+          setShowErrorModal(true);
+        }
+      } catch (error) {
+        console.error("Error fetching event:", error);
+        setErrorMessage("Failed to load event details");
+        setShowErrorModal(true);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      // Redirect to login
+      router.push(
+        `/login?redirect=${encodeURIComponent(`/volunteer/apply/${id}`)}`
+      );
+      return;
+    }
+
+    fetchEvent();
+  }, [id, isAuthenticated, router, user]);
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -51,6 +106,29 @@ export default function VolunteerApplicationPage({
   };
 
   const handleNext = () => {
+    // Validation for step 1
+    if (step === 1) {
+      if (
+        !formData.fullName ||
+        !formData.gender ||
+        !formData.age ||
+        !formData.status
+      ) {
+        setErrorMessage("Please fill in all required fields");
+        setShowErrorModal(true);
+        return;
+      }
+    }
+
+    // Validation for step 2
+    if (step === 2) {
+      if (files.length === 0) {
+        setErrorMessage("Please upload your CV");
+        setShowErrorModal(true);
+        return;
+      }
+    }
+
     setStep((prev) => prev + 1);
   };
 
@@ -97,34 +175,39 @@ export default function VolunteerApplicationPage({
     setFiles((prev) => prev.filter((file) => file.name !== fileName));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     try {
-      // Simulate API call
-      console.log("Form submitted:", { ...formData, files });
-
-      // Check if required fields are filled
-      if (
-        !formData.fullName ||
-        !formData.gender ||
-        !formData.age ||
-        !formData.status
-      ) {
-        setErrorMessage("Please fill in all required fields");
+      // Validate the form
+      if (!formData.reason || !formData.reason.trim()) {
+        setErrorMessage("Please explain why you want to volunteer");
         setShowErrorModal(true);
         return;
       }
 
-      // Check if CV is uploaded
       if (files.length === 0) {
         setErrorMessage("Please upload your CV");
         setShowErrorModal(true);
         return;
       }
 
-      // If everything is valid, show success modal
+      // In a real application, you would upload the file first and get a URL
+      // For now, we'll use a mock URL based on the filename
+      const cvPath = `/uploads/cv/${files[0].name}`;
+
+      // Submit the volunteer application
+      await applyForVolunteer({
+        eventId: id,
+        whyVolunteer: formData.reason,
+        cvPath: cvPath,
+      });
+
+      // Show success modal
       setShowSuccessModal(true);
-    } catch { 
-      setErrorMessage("Something went wrong. Please try again.");
+    } catch (error: any) {
+      console.error("Error submitting volunteer application:", error);
+      setErrorMessage(
+        error.message || "Failed to submit your application. Please try again."
+      );
       setShowErrorModal(true);
     }
   };
@@ -133,6 +216,28 @@ export default function VolunteerApplicationPage({
     // Redirect to volunteer page
     router.push("/volunteer");
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white pb-10">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex items-center mb-8">
+            <div className="h-6 w-6 mr-4">
+              <Skeleton className="h-full w-full rounded-full" />
+            </div>
+            <Skeleton className="h-10 w-64" />
+          </div>
+          <Skeleton className="h-4 w-full max-w-md mb-8" />
+          <Skeleton className="h-40 w-full max-w-md mb-8" />
+          <div className="space-y-6">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white pb-10">
@@ -201,11 +306,11 @@ export default function VolunteerApplicationPage({
 
         {/* Event title and image */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold mb-4">{event.title}</h2>
+          <h2 className="text-2xl font-bold mb-4">{event?.name || "Event"}</h2>
           <div className="rounded-lg overflow-hidden mb-6">
             <Image
-              src={event.image || "/placeholder.svg"}
-              alt={event.title}
+              src={getValidImageSrc(event?.profileImage)}
+              alt={event?.name || "Event"}
               width={400}
               height={250}
               className="w-full max-w-md h-auto object-cover"
@@ -223,7 +328,7 @@ export default function VolunteerApplicationPage({
               <Input
                 id="fullName"
                 name="fullName"
-                placeholder="Input Hint"
+                placeholder="Your full name"
                 value={formData.fullName}
                 onChange={handleInputChange}
                 required
@@ -241,10 +346,10 @@ export default function VolunteerApplicationPage({
                 value={formData.gender}
                 onChange={handleInputChange}
                 required
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="w-full border border-input rounded-md h-10 px-3"
               >
                 <option value="" disabled>
-                  Input Hint
+                  Select gender
                 </option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
@@ -261,7 +366,7 @@ export default function VolunteerApplicationPage({
                 id="age"
                 name="age"
                 type="number"
-                placeholder="Input Hint"
+                placeholder="Your age"
                 value={formData.age}
                 onChange={handleInputChange}
                 required
@@ -276,7 +381,7 @@ export default function VolunteerApplicationPage({
               <Input
                 id="status"
                 name="status"
-                placeholder="Input Hint"
+                placeholder="e.g. Student, Professional"
                 value={formData.status}
                 onChange={handleInputChange}
                 required
@@ -291,7 +396,7 @@ export default function VolunteerApplicationPage({
               <Input
                 id="organization"
                 name="organization"
-                placeholder="Input Hint"
+                placeholder="Your school or company"
                 value={formData.organization}
                 onChange={handleInputChange}
                 className="w-full"
@@ -305,7 +410,7 @@ export default function VolunteerApplicationPage({
               <Textarea
                 id="reason"
                 name="reason"
-                placeholder="Describe what's special about your event & other important details."
+                placeholder="Describe your motivation and what you hope to contribute"
                 value={formData.reason}
                 onChange={handleInputChange}
                 className="w-full min-h-[200px]"
@@ -324,16 +429,12 @@ export default function VolunteerApplicationPage({
         {/* Step 2: CV Upload */}
         {step === 2 && (
           <div>
-            <h2 className="text-2xl font-bold mb-6">Submit CV</h2>
-            <div className="bg-gray-50 rounded-lg p-6 mb-6">
-              <div className="flex items-center mb-4">
-                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center mr-3">
-                  <Upload className="h-5 w-5 text-gray-500" />
-                </div>
-                <div>
-                  <h3 className="font-medium">Upload files</h3>
+            <div className="bg-white p-4 rounded-lg border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <h2 className="text-lg font-bold mb-1">Upload your CV</h2>
                   <p className="text-sm text-gray-500">
-                    Select and upload the files oof your choice
+                    Select and upload your CV file
                   </p>
                 </div>
                 <button className="ml-auto">
@@ -342,7 +443,7 @@ export default function VolunteerApplicationPage({
               </div>
 
               <div
-                className={`border-2 border-dashed rounded-lg p-8 text-center ${
+                className={`border-2 border-dashed rounded-lg p-8 text-center mt-4 ${
                   isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300"
                 }`}
                 onDragOver={handleDragOver}
@@ -352,23 +453,23 @@ export default function VolunteerApplicationPage({
                 <div className="flex flex-col items-center">
                   <Upload className="h-10 w-10 text-gray-400 mb-4" />
                   <p className="mb-2 font-medium">
-                    Choose a file or drag & drop it here
+                    Drop files here or click to upload
                   </p>
-                  <p className="text-sm text-gray-500 mb-4">
-                    JPEG, PNG, PDF, and MP4 formats, up to 50MB
+                  <p className="text-sm text-gray-500">
+                    PDF, DOC, DOCX (max 5MB)
                   </p>
-                  <label htmlFor="file-upload" className="cursor-pointer">
-                    <div className="bg-white border border-gray-300 rounded-md px-4 py-2 hover:bg-gray-50">
-                      Browse File
-                    </div>
-                    <input
-                      id="file-upload"
-                      type="file"
-                      className="hidden"
-                      onChange={handleFileUpload}
-                      multiple
-                      accept=".jpeg,.jpg,.png,.pdf,.mp4"
-                    />
+                  <input
+                    type="file"
+                    id="file-upload"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                    accept=".pdf,.doc,.docx"
+                  />
+                  <label
+                    htmlFor="file-upload"
+                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"
+                  >
+                    Upload Files
                   </label>
                 </div>
               </div>
@@ -417,11 +518,7 @@ export default function VolunteerApplicationPage({
                           onClick={() => removeFile(file.name)}
                           className="text-gray-400 hover:text-gray-600"
                         >
-                          {file.completed ? (
-                            <X className="h-5 w-5" />
-                          ) : (
-                            <X className="h-5 w-5 text-gray-400 opacity-50" />
-                          )}
+                          <X className="h-5 w-5" />
                         </button>
                       </div>
                     </div>
@@ -430,7 +527,7 @@ export default function VolunteerApplicationPage({
               )}
             </div>
 
-            <div className="flex space-x-4">
+            <div className="flex space-x-4 mt-6">
               <Button
                 variant="outline"
                 onClick={handleBack}
@@ -563,6 +660,7 @@ export default function VolunteerApplicationPage({
             </div>
           </div>
         )}
+
         {/* Success Modal */}
         {showSuccessModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -575,13 +673,13 @@ export default function VolunteerApplicationPage({
                   SUCCESS
                 </h2>
                 <p className="text-gray-700 mb-2">
-                  Thank you for your request.
+                  Thank you for your application.
                 </p>
                 <p className="text-gray-700 mb-4">
-                  We are will go through and provide our feedback to you.
+                  We will review it and provide our feedback to you.
                 </p>
                 <p className="text-gray-700 mb-6">
-                  Shortly you will find a confirmation in notification.
+                  You will receive a confirmation notification shortly.
                 </p>
                 <Button
                   onClick={handleContinue}

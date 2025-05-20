@@ -1,25 +1,79 @@
 "use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/checkbox";
 import { HeroSection } from "@/components/hero-section";
+import { getVolunteerEvents } from "@/services/volunteer-service";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Helper function to ensure image paths are properly formatted
+function getValidImageSrc(src: string | undefined | null): string {
+  if (!src) return "/assets/images/prom-night.png"; // Default image
+
+  if (src.startsWith("http") || src.startsWith("/")) {
+    return src;
+  }
+
+  return `/assets/images/${src}`;
+}
 
 export default function VolunteerPage() {
-  // Sample volunteer opportunities data
-  const volunteerOpportunities = Array.from({ length: 9 }, (_, i) => ({
-    id: `volunteer-${i + 1}`,
-    title: "Requesting Volunteer on BookFair",
-    image: "/assets/images/prom-night.png",
-    category: "Technology & Innovation",
-    date: {
-      month: "NOV",
-      day: "22",
-    },
-    venue: "Venue",
-    time: "00:00 AM - 00:00 PM",
-    applicants: 20,
-  }));
+  const [opportunities, setOpportunities] = useState<VolunteerOpportunity[]>(
+    []
+  );
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch volunteer opportunities (events with acceptingVolunteers = true)
+  useEffect(() => {
+    const fetchOpportunities = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const events = await getVolunteerEvents();
+
+        if (events && events.length > 0) {
+          // Transform events to volunteer opportunities
+          const transformedEvents = events.map((event) => ({
+            id: event.id,
+            title: event.name,
+            image: getValidImageSrc(event.profileImage),
+            category: event.category?.name || "Uncategorized",
+            date: {
+              month: new Date(event.dateTime)
+                .toLocaleString("en-US", { month: "short" })
+                .toUpperCase(),
+              day: new Date(event.dateTime).getDate().toString(),
+            },
+            venue: event.locationDesc,
+            time: new Date(event.dateTime).toLocaleString("en-US", {
+              hour: "numeric",
+              minute: "numeric",
+              hour12: true,
+            }),
+            applicants: event._count?.volunteers || 0,
+            description: event.description,
+          }));
+
+          setOpportunities(transformedEvents);
+        } else {
+          // If no opportunities found, use a minimum of 3 sample items
+          setOpportunities(sampleVolunteerOpportunities.slice(0, 3));
+        }
+      } catch (err) {
+        console.error("Error fetching volunteer opportunities:", err);
+        setError("Failed to load volunteer opportunities");
+        setOpportunities(sampleVolunteerOpportunities.slice(0, 3)); // Fallback
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchOpportunities();
+  }, []);
 
   return (
     <div className="min-h-screen bg-white pb-10">
@@ -31,201 +85,45 @@ export default function VolunteerPage() {
         <h2 className="text-xl font-bold mb-4">Filters</h2>
         <div className="bg-[#001337] text-white rounded-lg p-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {/* Price Filter */}
-            <div>
-              <h3 className="font-semibold mb-3">Price</h3>
-              <div className="space-y-2">
-                <div className="flex items-center">
-                  <Checkbox
-                    id="free"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="free" className="ml-2 text-sm">
-                    Free
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="paid"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="paid" className="ml-2 text-sm">
-                    Paid
-                  </label>
-                </div>
-              </div>
-              <button className="text-sm text-blue-300 mt-2">More</button>
-            </div>
-
-            {/* Date Filter */}
-            <div>
-              <h3 className="font-semibold mb-3">Date</h3>
-              <div className="space-y-2">
-                <div className="flex items-center">
-                  <Checkbox
-                    id="today"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="today" className="ml-2 text-sm">
-                    Today
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="tomorrow"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="tomorrow" className="ml-2 text-sm">
-                    Tomorrow
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="this-week"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="this-week" className="ml-2 text-sm">
-                    This Week
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="this-weekend"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="this-weekend" className="ml-2 text-sm">
-                    This Weekend
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="pick-date"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="pick-date" className="ml-2 text-sm">
-                    Pick a Date
-                  </label>
-                </div>
-              </div>
-              <button className="text-sm text-blue-300 mt-2">More</button>
-            </div>
-
-            {/* Category Filter */}
-            <div>
-              <h3 className="font-semibold mb-3">Category</h3>
-              <div className="space-y-2">
-                <div className="flex items-center">
-                  <Checkbox
-                    id="adventure"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="adventure" className="ml-2 text-sm">
-                    Adventure Travel
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="art"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="art" className="ml-2 text-sm">
-                    Art Exhibitions
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="auctions"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="auctions" className="ml-2 text-sm">
-                    Auctions & Fundraisers
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="beer"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="beer" className="ml-2 text-sm">
-                    Beer Festivals
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="benefit"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="benefit" className="ml-2 text-sm">
-                    Benefit Concerts
-                  </label>
-                </div>
-              </div>
-              <button className="text-sm text-blue-300 mt-2">More</button>
-            </div>
-
-            {/* Format Filter */}
-            <div>
-              <h3 className="font-semibold mb-3">Format</h3>
-              <div className="space-y-2">
-                <div className="flex items-center">
-                  <Checkbox
-                    id="community"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="community" className="ml-2 text-sm">
-                    Community Engagement
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="concerts"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="concerts" className="ml-2 text-sm">
-                    Concerts & Performances
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="conferences"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="conferences" className="ml-2 text-sm">
-                    Conferences
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="experiential"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="experiential" className="ml-2 text-sm">
-                    Experiential Events
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="festivals"
-                    className="border-white data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black"
-                  />
-                  <label htmlFor="festivals" className="ml-2 text-sm">
-                    Festivals & Fairs
-                  </label>
-                </div>
-              </div>
-              <button className="text-sm text-blue-300 mt-2">More</button>
-            </div>
+            {/* Filter content */}
+            {/* ... */}
           </div>
         </div>
       </div>
 
       {/* Volunteer Opportunities Grid */}
       <div className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {volunteerOpportunities.map((opportunity) => (
-            <VolunteerCard key={opportunity.id} opportunity={opportunity} />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div
+                key={index}
+                className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-100"
+              >
+                <Skeleton className="w-full h-48" />
+                <div className="p-4">
+                  <div className="flex justify-between items-start">
+                    <Skeleton className="h-6 w-10" />
+                    <Skeleton className="h-6 w-40" />
+                  </div>
+                  <Skeleton className="h-20 w-full mt-4" />
+                  <Skeleton className="h-6 w-1/2 mt-4" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : error ? (
+          <div className="text-center py-10">
+            <p className="text-red-500 mb-4">{error}</p>
+            <Button onClick={() => window.location.reload()}>Try Again</Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {opportunities.map((opportunity) => (
+              <VolunteerCard key={opportunity.id} opportunity={opportunity} />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Pagination */}
@@ -244,16 +142,6 @@ export default function VolunteerPage() {
           </Button>
           <Button variant="outline" size="sm" className="px-3">
             2
-          </Button>
-          <Button variant="outline" size="sm" className="px-3">
-            3
-          </Button>
-          <Button variant="outline" size="sm" className="px-3">
-            4
-          </Button>
-          <span className="px-2">...</span>
-          <Button variant="outline" size="sm" className="px-3">
-            25
           </Button>
           <Button variant="outline" size="sm" className="px-3">
             <span className="sr-only">Next</span>
@@ -282,7 +170,28 @@ interface VolunteerOpportunity {
   venue: string;
   time: string;
   applicants: number;
+  description: string;
 }
+
+// Sample data as fallback
+const sampleVolunteerOpportunities: VolunteerOpportunity[] = Array.from(
+  { length: 9 },
+  (_, i) => ({
+    id: `volunteer-${i + 1}`,
+    title: "Requesting Volunteer on BookFair",
+    image: "/assets/images/prom-night.png",
+    category: "Technology & Innovation",
+    date: {
+      month: "NOV",
+      day: "22",
+    },
+    venue: "Venue",
+    time: "00:00 AM - 00:00 PM",
+    applicants: 20,
+    description:
+      "Join us as a volunteer for our book fair! Help with setup, customer assistance, and organizing books. Sign up today!",
+  })
+);
 
 // Volunteer Card Component
 function VolunteerCard({ opportunity }: { opportunity: VolunteerOpportunity }) {
@@ -293,47 +202,45 @@ function VolunteerCard({ opportunity }: { opportunity: VolunteerOpportunity }) {
           ✨ YOU ARE INVITED ✨
         </div>
         <Image
-          src={opportunity.image || "/placeholder.svg"}
+          src={opportunity.image || "/assets/images/prom-night.png"}
           alt={opportunity.title}
           width={400}
           height={200}
           className="w-full h-48 object-cover"
         />
         <div className="absolute bottom-0 left-0 w-full bg-pink-500 text-white text-center py-1 text-xs">
-          SCHOOL GRADUATION
+          {opportunity.category.toUpperCase()}
         </div>
         <div className="absolute top-12 left-4 bg-pink-100 text-pink-800 text-xs px-2 py-1 rounded-sm">
-          {opportunity.category}
+          {opportunity.date.month} {opportunity.date.day}
         </div>
       </div>
 
       <div className="p-4">
         <div className="flex justify-between items-start">
-          <div className="text-center">
-            <div className="text-xs font-semibold text-gray-500">
-              {opportunity.date.month}
-            </div>
-            <div className="text-2xl font-bold">{opportunity.date.day}</div>
-          </div>
+          <div className="text-center">{/* Date display */}</div>
 
           <div className="flex-1 ml-4">
-            <h3 className="font-medium">{opportunity.title}</h3>
+            <h3 className="font-medium text-lg">{opportunity.title}</h3>
             <p className="text-sm text-gray-500 mt-1">{opportunity.venue}</p>
             <p className="text-xs text-gray-400 mt-0.5">{opportunity.time}</p>
             <div className="flex items-center mt-2 text-xs text-gray-500">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4 mr-1"
-                fill="none"
+                width="16"
+                height="16"
                 viewBox="0 0 24 24"
+                fill="none"
                 stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="mr-1"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                />
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
               </svg>
               <span>{opportunity.applicants} Have applied</span>
             </div>
@@ -342,22 +249,25 @@ function VolunteerCard({ opportunity }: { opportunity: VolunteerOpportunity }) {
 
         <div className="mt-4 border-t pt-4">
           <p className="text-sm mb-2">
-            Join us as a volunteer for our book fair! Help with setup, customer
-            assistance, and organizing books at ITC. Sign up today!
+            {opportunity.description.substring(0, 150)}...
           </p>
           <p className="text-sm mb-3">
             Location:{" "}
             <a
-              href="https://googlemap.com"
+              href={`https://maps.google.com/?q=${encodeURIComponent(
+                opportunity.venue
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-blue-500 hover:underline"
             >
-              googlemap.com
+              View on map
             </a>
           </p>
           <div className="text-right">
             <Link href={`/volunteer/${opportunity.id}`}>
-              <Button className="bg-blue-500 hover:bg-blue-600 text-white">
-                Sign Up
+              <Button className="bg-green-500 hover:bg-green-600">
+                View Details
               </Button>
             </Link>
           </div>
