@@ -40,7 +40,7 @@ Bring your family and friends and sing along your favourite Christmas carols on 
 3. Special Dance performances and many more surprises!`,
     host: {
       name: "Jeffrey Zin",
-      image: "/assets/images/avatar.png",
+      image: "/assets/icons/user.png",
     },
   }
 

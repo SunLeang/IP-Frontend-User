@@ -9,6 +9,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { SystemRole, type CurrentRole } from "@/types/user";
+import { switchUserRole } from "@/services/role-service";
 
 // Types
 export interface User {
@@ -39,6 +40,7 @@ interface AuthContextType extends AuthState {
   isAuthenticated: boolean;
   hasRole: (role: SystemRole) => boolean;
   hasCurrentRole: (role: CurrentRole) => boolean;
+  switchRole: (role: CurrentRole) => Promise<boolean>;
 }
 
 export interface RegisterData {
@@ -230,6 +232,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Switch role function
+  const switchRole = async (role: CurrentRole) => {
+    try {
+      setAuthState((prev) => ({ ...prev, isLoading: true }));
+
+      // Call the backend to switch roles and get new tokens
+      const response = await switchUserRole(role);
+
+      // Verify we have all the required data from the backend
+      if (response && response.user && response.accessToken) {
+        // Force currentRole to match the requested role regardless of backend response
+        const updatedUser = {
+          ...response.user,
+          currentRole: role,
+        };
+
+        console.log("Updating auth state with new role:", role);
+
+        // Update localStorage with the new user and tokens
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+        localStorage.setItem("accessToken", response.accessToken);
+
+        if (response.refreshToken) {
+          localStorage.setItem("refreshToken", response.refreshToken);
+        }
+
+        // Then update state
+        setAuthState({
+          user: updatedUser,
+          accessToken: response.accessToken,
+          refreshToken: response.refreshToken || authState.refreshToken,
+          isLoading: false,
+        });
+
+        return true;
+      } else {
+        console.error("Invalid response from role switching API:", response);
+        setAuthState((prev) => ({ ...prev, isLoading: false }));
+        return false;
+      }
+    } catch (error) {
+      console.error("Failed to switch role:", error);
+      setAuthState((prev) => ({ ...prev, isLoading: false }));
+      return false;
+    }
+  };
+
   // Role checking helpers
   const hasRole = (role: SystemRole): boolean => {
     if (!authState.user) return false;
@@ -248,8 +297,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const hasCurrentRole = (role: CurrentRole): boolean => {
-    if (!authState.user) return false;
-    return authState.user.currentRole === role;
+    // IMPROVED ROLE CHECKING: First check auth state
+    if (authState.user && authState.user.currentRole === role) {
+      return true;
+    }
+
+    // If auth state doesn't have the role, check localStorage as fallback
+    try {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        const user = JSON.parse(storedUser);
+        return user.currentRole === role;
+      }
+    } catch (e) {
+      console.error("Error checking role in localStorage:", e);
+    }
+
+    return false;
   };
 
   const value = {
@@ -257,6 +321,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     register,
     logout,
+    switchRole,
     isAuthenticated: !!authState.user && !!authState.accessToken,
     hasRole,
     hasCurrentRole,

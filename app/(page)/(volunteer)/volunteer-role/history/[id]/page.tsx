@@ -45,7 +45,7 @@ Bring your family and friends and sing along your favourite Christmas carols on 
 3. Special Dance performances and many more surprises!`,
     host: {
       name: "Jeffrey Zin",
-      image: "/assets/images/avatar.png",
+      image: "/assets/icons/user.png",
     },
     volunteerRole: "Guest Assistance",
     volunteerTasks: [
@@ -64,7 +64,7 @@ Bring your family and friends and sing along your favourite Christmas carols on 
       id: "1",
       user: {
         name: "Mark",
-        image: "/assets/images/avatar.png",
+        image: "/assets/icons/user.png",
         time: "2d ago",
       },
       rating: 5,
@@ -74,7 +74,7 @@ Bring your family and friends and sing along your favourite Christmas carols on 
       id: "2",
       user: {
         name: "Sarah",
-        image: "/assets/images/avatar.png",
+        image: "/assets/icons/user.png",
         time: "3d ago",
       },
       rating: 5,
@@ -84,7 +84,7 @@ Bring your family and friends and sing along your favourite Christmas carols on 
       id: "3",
       user: {
         name: "Alex",
-        image: "/assets/images/avatar.png",
+        image: "/assets/icons/user.png",
         time: "4d ago",
       },
       rating: 4,

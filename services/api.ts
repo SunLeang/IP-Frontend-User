@@ -12,7 +12,15 @@ const getAccessToken = () => {
 
 // Create auth header with proper typing
 const getAuthHeader = (): Record<string, string> => {
+  // First check the auth state for token
   const token = getAccessToken();
+
+  // Log the token for debugging purposes
+  console.log(
+    "Using token for API request:",
+    token ? "token found" : "no token"
+  );
+
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
@@ -58,6 +66,8 @@ export async function apiGet(endpoint: string) {
   }
 }
 
+// Update the apiPost function to add more token refresh capabilities
+
 export async function apiPost(endpoint: string, data: any) {
   try {
     const headers: Record<string, string> = {
@@ -65,19 +75,41 @@ export async function apiPost(endpoint: string, data: any) {
       ...getAuthHeader(),
     };
 
-    const response = await fetch(`${API_URL}${endpoint}`, {
+    let response = await fetch(`${API_URL}${endpoint}`, {
       method: "POST",
       headers,
       body: JSON.stringify(data),
     });
 
-    if (response.status === 401) {
-      console.error(
-        "Authentication error: User is not authenticated or token expired"
-      );
-      // Optionally redirect to login
-      // if (typeof window !== "undefined") window.location.href = "/login"
-      throw new Error("Unauthorized - Please log in");
+    // Add retry logic for both 401 and 403 errors
+    if (response.status === 401 || response.status === 403) {
+      // If this is already the /api/users/switch-role endpoint, don't try to refresh
+      if (endpoint !== "/api/users/switch-role") {
+        console.log(
+          "Attempting token refresh due to",
+          response.status,
+          "error"
+        );
+        const newAccessToken = await refreshAccessToken();
+        if (newAccessToken) {
+          console.log("Token refreshed successfully, retrying request");
+          // Retry original request with new token
+          const retryHeaders: Record<string, string> = {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${newAccessToken}`,
+          };
+          response = await fetch(`${API_URL}${endpoint}`, {
+            method: "POST",
+            headers: retryHeaders,
+            body: JSON.stringify(data),
+          });
+        } else {
+          console.error("Token refresh failed");
+          throw new Error("Unauthorized - Please log in");
+        }
+      } else {
+        console.error("Permission error on switch-role endpoint");
+      }
     }
 
     if (!response.ok) {

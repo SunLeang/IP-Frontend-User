@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import Link from "next/link"
-import Image from "next/image"
+import { useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
 import {
   Bell,
   Calendar,
@@ -16,41 +16,42 @@ import {
   Settings,
   UserPlus,
   UserIcon as UserSwitch,
-} from "lucide-react"
-import { usePathname, useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
+} from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { SwitchRolesModal } from "@/components/switch-roles-modal"
-import { useAuth } from "@/context/auth-context"
+} from "@/components/ui/dropdown-menu";
+import { SwitchRolesModal } from "@/components/switch-roles-modal";
+import { useAuth } from "@/context/auth-context";
+import { RoleSwitcher } from "@/components/auth/role-switcher";
 
 export default function Navbar() {
-  const [isOpen, setIsOpen] = useState(false)
-  const [isSwitchRolesModalOpen, setIsSwitchRolesModalOpen] = useState(false)
-  const pathname = usePathname()
-  const router = useRouter()
-  const { user, isAuthenticated, logout } = useAuth()
+  const [isOpen, setIsOpen] = useState(false);
+  const [isSwitchRolesModalOpen, setIsSwitchRolesModalOpen] = useState(false);
+  const pathname = usePathname();
+  const router = useRouter();
+  const { user, isAuthenticated, logout } = useAuth();
 
-  const userImage = user?.profileImage || "/icons/user.png"
+  const userImage = user?.profileImage || "/icons/user.png";
 
   const handleSwitchRole = () => {
-    setIsSwitchRolesModalOpen(true)
-  }
+    setIsSwitchRolesModalOpen(true);
+  };
 
   const handleSelectRole = (role: string) => {
-    console.log(`Selected role: ${role}`)
-    setIsSwitchRolesModalOpen(false)
-  }
+    console.log(`Selected role: ${role}`);
+    setIsSwitchRolesModalOpen(false);
+  };
 
   const handleLogout = async () => {
-    await logout()
-    router.push("/login")
-  }
+    await logout();
+    router.push("/login");
+  };
 
   return (
     <>
@@ -58,14 +59,24 @@ export default function Navbar() {
         <div className="container mx-auto flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center">
-            <Image src="/assets/images/logo.png" alt="Eventura" width={40} height={40} />
+            <Image
+              src="/assets/images/logo.png"
+              alt="Eventura"
+              width={40}
+              height={40}
+            />
             <span className="ml-2 font-bold text-lg">eventura</span>
           </Link>
 
           {/* Center Navigation */}
           <nav className="hidden md:flex items-center absolute left-1/2 transform -translate-x-1/2">
             <div className="flex items-center space-x-6">
-              <NavItem href="/" icon={<Home size={16} />} label="Home" active={pathname === "/"} />
+              <NavItem
+                href="/"
+                icon={<Home size={16} />}
+                label="Home"
+                active={pathname === "/"}
+              />
               <NavItem
                 href="/events"
                 icon={<Calendar size={16} />}
@@ -100,11 +111,19 @@ export default function Navbar() {
             aria-label="Toggle menu"
           >
             <span
-              className={`w-6 h-0.5 bg-gray-600 transition-all ${isOpen ? "rotate-45 translate-y-1.5" : ""}`}
+              className={`w-6 h-0.5 bg-gray-600 transition-all ${
+                isOpen ? "rotate-45 translate-y-1.5" : ""
+              }`}
             ></span>
-            <span className={`w-6 h-0.5 bg-gray-600 transition-all ${isOpen ? "opacity-0" : ""}`}></span>
             <span
-              className={`w-6 h-0.5 bg-gray-600 transition-all ${isOpen ? "-rotate-45 -translate-y-1.5" : ""}`}
+              className={`w-6 h-0.5 bg-gray-600 transition-all ${
+                isOpen ? "opacity-0" : ""
+              }`}
+            ></span>
+            <span
+              className={`w-6 h-0.5 bg-gray-600 transition-all ${
+                isOpen ? "-rotate-45 -translate-y-1.5" : ""
+              }`}
             ></span>
           </button>
 
@@ -134,16 +153,18 @@ export default function Navbar() {
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem className="cursor-pointer" onClick={handleSwitchRole}>
-                      <UserSwitch className="mr-2 h-4 w-4" />
-                      <span>Switch Role</span>
+                    <DropdownMenuItem asChild>
+                      <RoleSwitcher triggerClassName="w-full flex items-center text-sm py-1 cursor-pointer" />
                     </DropdownMenuItem>
                     <DropdownMenuItem className="cursor-pointer">
                       <Settings className="mr-2 h-4 w-4" />
                       <span>Setting</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="cursor-pointer text-red-500" onClick={handleLogout}>
+                    <DropdownMenuItem
+                      className="cursor-pointer text-red-500"
+                      onClick={handleLogout}
+                    >
                       <LogOut className="mr-2 h-4 w-4" />
                       <span>Log Out</span>
                     </DropdownMenuItem>
@@ -171,7 +192,12 @@ export default function Navbar() {
         {isOpen && (
           <div className="md:hidden pt-4 pb-2 px-4 border-t mt-3">
             <nav className="flex flex-col space-y-4">
-              <NavItem href="/" icon={<Home size={16} />} label="Home" active={pathname === "/"} />
+              <NavItem
+                href="/"
+                icon={<Home size={16} />}
+                label="Home"
+                active={pathname === "/"}
+              />
               <NavItem
                 href="/events"
                 icon={<Calendar size={16} />}
@@ -211,7 +237,9 @@ export default function Navbar() {
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    <span className="font-medium">{user?.fullName || "Your Account"}</span>
+                    <span className="font-medium">
+                      {user?.fullName || "Your Account"}
+                    </span>
                   </div>
                   <button className="relative">
                     <Bell size={20} />
@@ -220,22 +248,30 @@ export default function Navbar() {
                     </span>
                   </button>
                 </div>
-                <button onClick={handleSwitchRole} className="flex items-center text-sm py-2">
-                  <UserSwitch className="mr-2 h-4 w-4" />
-                  <span>Switch Role</span>
-                </button>
-                <Link href="/settings" className="flex items-center text-sm py-2">
+                <RoleSwitcher />
+                <Link
+                  href="/settings"
+                  className="flex items-center text-sm py-2"
+                >
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Setting</span>
                 </Link>
-                <button onClick={handleLogout} className="flex items-center text-sm py-2 text-red-500">
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center text-sm py-2 text-red-500"
+                >
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log Out</span>
                 </button>
               </div>
             ) : (
               <div className="flex flex-col space-y-2 mt-4 pt-4 border-t">
-                <Button variant="outline" size="sm" asChild className="justify-center">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  asChild
+                  className="justify-center"
+                >
                   <Link href="/login">Log in</Link>
                 </Button>
                 <Button
@@ -258,29 +294,32 @@ export default function Navbar() {
         onSelectRole={handleSelectRole}
       />
     </>
-  )
+  );
 }
 
 interface NavItemProps {
-  href: string
-  icon: React.ReactNode
-  label: string
-  active?: boolean
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+  active?: boolean;
 }
 
 function NavItem({ href, icon, label, active }: NavItemProps) {
-  const pathname = usePathname()
-  const isActive = active || pathname === href || pathname?.startsWith(href + "/")
+  const pathname = usePathname();
+  const isActive =
+    active || pathname === href || pathname?.startsWith(href + "/");
 
   return (
     <Link
       href={href}
       className={`flex items-center text-sm ${
-        isActive ? "text-blue-500 border-b-2 border-blue-500 pb-3 -mb-3" : "text-gray-500 hover:text-blue-500"
+        isActive
+          ? "text-blue-500 border-b-2 border-blue-500 pb-3 -mb-3"
+          : "text-gray-500 hover:text-blue-500"
       }`}
     >
       <span className="mr-1.5">{icon}</span>
       {label}
     </Link>
-  )
+  );
 }

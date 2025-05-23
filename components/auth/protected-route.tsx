@@ -1,63 +1,185 @@
-"use client"
+"use client";
 
-import type React from "react"
-
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/context/auth-context"
-import type { SystemRole, CurrentRole } from "@/types/user"
+import type React from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/auth-context";
+import type { SystemRole, CurrentRole } from "@/types/user";
 
 interface ProtectedRouteProps {
-  children: React.ReactNode
-  requiredSystemRole?: SystemRole
-  requiredCurrentRole?: CurrentRole
+  children: React.ReactNode;
+  requiredSystemRole?: SystemRole;
+  requiredCurrentRole?: CurrentRole;
 }
 
-export default function ProtectedRoute({ children, requiredSystemRole, requiredCurrentRole }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading, hasRole, hasCurrentRole } = useAuth()
-  const router = useRouter()
+export default function ProtectedRoute({
+  children,
+  requiredSystemRole,
+  requiredCurrentRole,
+}: ProtectedRouteProps) {
+  const { isAuthenticated, isLoading, hasRole, hasCurrentRole, user } =
+    useAuth();
+  const router = useRouter();
+  const [redirecting, setRedirecting] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push("/login")
-      return
+    if (isLoading) {
+      console.log("Auth state is loading, waiting...");
+      return;
     }
 
-    if (!isLoading && isAuthenticated) {
-      // Check system role if required
-      if (requiredSystemRole && !hasRole(requiredSystemRole)) {
-        router.push("/unauthorized")
-        return
-      }
+    console.log("Protected Route Check:", {
+      isAuthenticated,
+      userRole: user?.currentRole,
+      requiredRole: requiredCurrentRole,
+      hasToken: !!localStorage.getItem("accessToken"),
+      storageUser: localStorage.getItem("user")
+        ? JSON.parse(localStorage.getItem("user") || "{}").currentRole
+        : "none",
+    });
 
-      // Check current role if required
-      if (requiredCurrentRole && !hasCurrentRole(requiredCurrentRole)) {
-        router.push("/unauthorized")
-        return
-      }
+    // Get data directly from localStorage first for more reliable checks
+    const storedUserString = localStorage.getItem("user");
+    const storedToken = localStorage.getItem("accessToken");
+    const storedUser = storedUserString ? JSON.parse(storedUserString) : null;
+
+    // Check authentication state combining context and localStorage
+    const isReallyAuthenticated = !!(storedUser && storedToken);
+
+    if (!isReallyAuthenticated) {
+      console.log("User not authenticated, redirecting to login");
+      setRedirecting(true);
+      router.push(
+        `/login?from=${encodeURIComponent(window.location.pathname)}`
+      );
+      return;
     }
-  }, [isLoading, isAuthenticated, hasRole, hasCurrentRole, requiredSystemRole, requiredCurrentRole, router])
 
-  // Show nothing while checking authentication
-  if (isLoading) {
-    return <div className="flex justify-center items-center min-h-screen">Loading...</div>
+    // Check current role directly from localStorage for reliability
+    if (
+      requiredCurrentRole &&
+      storedUser?.currentRole !== requiredCurrentRole
+    ) {
+      console.log("Role mismatch:", {
+        stored: storedUser?.currentRole,
+        required: requiredCurrentRole,
+      });
+      setRedirecting(true);
+      router.push("/unauthorized");
+      return;
+    }
+
+    // Check system role (admin, etc.)
+    if (requiredSystemRole && !hasRole(requiredSystemRole)) {
+      setRedirecting(true);
+      console.log("System role mismatch:", {
+        userRole: user?.systemRole,
+        requiredRole: requiredSystemRole,
+      });
+
+      const redirectTimer = setTimeout(() => {
+        router.push("/unauthorized");
+      }, 100);
+
+      return () => clearTimeout(redirectTimer);
+    }
+  }, [
+    isLoading,
+    isAuthenticated,
+    hasRole,
+    hasCurrentRole,
+    requiredSystemRole,
+    requiredCurrentRole,
+    router,
+    user,
+  ]);
+
+  // Show loading indicator while checking auth or during redirect
+  if (isLoading || redirecting) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-500 border-r-transparent mb-4"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
   }
 
-  // If not authenticated, don't render children
-  if (!isAuthenticated) {
-    return null
+  // If authenticated and has correct role, render content
+  if (isAuthenticated) {
+    // But check roles first
+    if (requiredSystemRole && !hasRole(requiredSystemRole)) {
+      return null;
+    }
+
+    if (requiredCurrentRole && !hasCurrentRole(requiredCurrentRole)) {
+      return null;
+    }
+
+    return <>{children}</>;
   }
 
-  // If role check is required and user doesn't have the role, don't render children
-  if (requiredSystemRole && !hasRole(requiredSystemRole)) {
-    return null
-  }
-
-  // If current role check is required and user doesn't have the role, don't render children
-  if (requiredCurrentRole && !hasCurrentRole(requiredCurrentRole)) {
-    return null
-  }
-
-  // If all checks pass, render the protected content
-  return <>{children}</>
+  // Otherwise render nothing
+  return null;
 }
+
+// Update only the switchRole function in your auth context
+const switchRole = async (role: CurrentRole) => {
+  try {
+    // Set loading to true immediately to prevent race conditions
+    setAuthState((prevState) => ({
+      ...prevState,
+      isLoading: true,
+    }));
+
+    const response = await switchUserRole(role);
+
+    // Update both user and tokens from the response
+    if (response && response.user) {
+      const updatedUser = {
+        ...response.user,
+        currentRole: role, // Ensure the role is updated locally immediately
+      };
+
+      // Update tokens and user in localStorage first
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+
+      if (response.accessToken) {
+        localStorage.setItem("accessToken", response.accessToken);
+      }
+
+      if (response.refreshToken) {
+        localStorage.setItem("refreshToken", response.refreshToken);
+      }
+
+      // Then update state
+      setAuthState({
+        user: updatedUser,
+        accessToken: response.accessToken || authState.accessToken,
+        refreshToken: response.refreshToken || authState.refreshToken,
+        isLoading: false,
+      });
+
+      return true;
+    }
+
+    // If we get here, something went wrong with the response
+    setAuthState((prevState) => ({
+      ...prevState,
+      isLoading: false,
+    }));
+
+    return false;
+  } catch (error) {
+    console.error("Failed to switch role:", error);
+
+    // Ensure loading is set back to false on error
+    setAuthState((prevState) => ({
+      ...prevState,
+      isLoading: false,
+    }));
+
+    return false;
+  }
+};

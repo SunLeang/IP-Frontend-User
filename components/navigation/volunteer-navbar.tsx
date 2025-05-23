@@ -1,27 +1,34 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import Link from "next/link"
-import Image from "next/image"
-import { Bell, ChevronDown, History, Home, ClipboardList, Calendar } from "lucide-react"
-import { useRouter, usePathname } from "next/navigation"
-import { SwitchRolesModal } from "@/components/switch-roles-modal"
+import { useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import {
+  Bell,
+  ChevronDown,
+  History,
+  Home,
+  ClipboardList,
+  Calendar,
+} from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
+import { SwitchRolesModal } from "@/components/switch-roles-modal";
+import { RoleSwitcher } from "@/components/auth/role-switcher";
+import { useAuth } from "@/context/auth-context";
 
 export function VolunteerNavbar() {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  const [isSwitchRolesModalOpen, setIsSwitchRolesModalOpen] = useState(false)
-  const router = useRouter()
-  const pathname = usePathname()
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isSwitchRolesModalOpen, setIsSwitchRolesModalOpen] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
+  const { user, logout } = useAuth();
 
-  const handleSwitchRole = (role: string) => {
-    setIsSwitchRolesModalOpen(false)
-    if (role === "attendee") {
-      // Redirect to user homepage
-      router.push("/")
-    }
-  }
+  const handleLogout = async () => {
+    await logout();
+    router.push("/login");
+  };
 
   return (
     <>
@@ -29,7 +36,12 @@ export function VolunteerNavbar() {
         <div className="container mx-auto flex items-center justify-between">
           {/* Logo */}
           <Link href="/volunteer-role/dashboard" className="flex items-center">
-            <Image src="/assets/images/logo.png" alt="Eventura" width={32} height={32} />
+            <Image
+              src="/assets/images/logo.png"
+              alt="Eventura"
+              width={32}
+              height={32}
+            />
             <span className="ml-2 font-bold text-lg">eventura</span>
           </Link>
 
@@ -73,14 +85,22 @@ export function VolunteerNavbar() {
             </button>
 
             <div className="relative">
-              <button className="flex items-center gap-2" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
+              <button
+                className="flex items-center gap-2"
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              >
                 <div className="w-8 h-8 rounded-full overflow-hidden">
                   <Image
-                    src="/icons/user.png"
+                    src="/assets/icons/user.png"
                     alt="User"
                     width={32}
                     height={32}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // Fallback if image is not found
+                      e.currentTarget.src =
+                        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E";
+                    }}
                   />
                 </div>
                 <ChevronDown size={16} />
@@ -88,29 +108,23 @@ export function VolunteerNavbar() {
 
               {isDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
-                  <button
-                    onClick={() => {
-                      setIsDropdownOpen(false)
-                      setIsSwitchRolesModalOpen(true)
-                    }}
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  >
-                    Switch Role
-                  </button>
+                  <RoleSwitcher triggerClassName="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" />
                   <Link
                     href="/settings"
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     onClick={() => setIsDropdownOpen(false)}
                   >
-                    Setting
+                    Settings
                   </Link>
-                  <Link
-                    href="/login"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    onClick={() => setIsDropdownOpen(false)}
+                  <button
+                    onClick={() => {
+                      setIsDropdownOpen(false);
+                      handleLogout();
+                    }}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                   >
                     Log Out
-                  </Link>
+                  </button>
                 </div>
               )}
             </div>
@@ -118,21 +132,21 @@ export function VolunteerNavbar() {
         </div>
       </header>
 
+      {/* Use the SwitchRolesModal component */}
       <SwitchRolesModal
         isOpen={isSwitchRolesModalOpen}
         onClose={() => setIsSwitchRolesModalOpen(false)}
-        onSelectRole={handleSwitchRole}
         currentRole="volunteer"
       />
     </>
-  )
+  );
 }
 
 interface NavItemProps {
-  href: string
-  icon: React.ReactNode
-  label: string
-  active?: boolean
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+  active?: boolean;
 }
 
 function NavItem({ href, icon, label, active }: NavItemProps) {
@@ -140,11 +154,13 @@ function NavItem({ href, icon, label, active }: NavItemProps) {
     <Link
       href={href}
       className={`flex items-center text-sm ${
-        active ? "text-blue-500 border-b-2 border-blue-500 pb-3 -mb-3" : "text-gray-500 hover:text-blue-500"
+        active
+          ? "text-blue-500 border-b-2 border-blue-500 pb-3 -mb-3"
+          : "text-gray-500 hover:text-blue-500"
       }`}
     >
       <span className="mr-1.5">{icon}</span>
       {label}
     </Link>
-  )
+  );
 }

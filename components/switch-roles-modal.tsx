@@ -1,124 +1,119 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Loader2, User, Users } from "lucide-react";
+import { CurrentRole } from "@/types/user";
+import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
 
 interface SwitchRolesModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectRole: (role: string) => void;
   currentRole?: string;
 }
 
 export function SwitchRolesModal({
   isOpen,
   onClose,
-  onSelectRole,
+  currentRole = "attendee",
 }: SwitchRolesModalProps) {
-  const [mounted, setMounted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { switchRole } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    setMounted(true);
+  const handleSelectRole = async (role: CurrentRole) => {
+    setLoading(true);
+    try {
+      // First close modal
+      onClose();
 
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    }
+      // Create a form and submit it to the backend directly
+      // This bypasses all the client-side auth state management issues
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = `${
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:3100"
+      }/api/users/switch-role-redirect`;
 
-    return () => {
-      document.body.style.overflow = "auto";
-    };
-  }, [isOpen]);
+      // Add the role to switch to
+      const roleInput = document.createElement("input");
+      roleInput.type = "hidden";
+      roleInput.name = "role";
+      roleInput.value = role;
+      form.appendChild(roleInput);
 
-  const roles = [
-    {
-      id: "attendee",
-      name: "User (Attendee)",
-      description: "Participate in events",
-      icon: (
-        <div className="bg-blue-500 rounded-full p-1 mr-3">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-            <circle cx="12" cy="7" r="4" />
-          </svg>
-        </div>
-      ),
-    },
-    {
-      id: "volunteer",
-      name: "Volunteer",
-      description: "Help organize and run events",
-      icon: (
-        <div className="bg-gray-600 rounded-full p-1 mr-3">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M7 11v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-8" />
-            <path d="M18 7v4H6V7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1z" />
-            <path d="M12 6V3" />
-            <path d="M10 9h4" />
-          </svg>
-        </div>
-      ),
-    },
-  ];
+      // Add the redirect URL based on the role
+      const redirectInput = document.createElement("input");
+      redirectInput.type = "hidden";
+      redirectInput.name = "redirectUrl";
+      redirectInput.value =
+        role === CurrentRole.VOLUNTEER
+          ? `${window.location.origin}/volunteer-role/dashboard?t=${Date.now()}`
+          : `${window.location.origin}/?t=${Date.now()}`;
+      form.appendChild(redirectInput);
 
-  const handleSelectRole = (role: string) => {
-    onSelectRole(role);
+      // Add the authorization token
+      const tokenInput = document.createElement("input");
+      tokenInput.type = "hidden";
+      tokenInput.name = "token";
+      tokenInput.value = localStorage.getItem("accessToken") || "";
+      form.appendChild(tokenInput);
 
-    // Redirect based on role
-    if (role === "volunteer") {
-      router.push("/volunteer-role/dashboard");
-    } else if (role === "attendee") {
-      router.push("/");
+      // Append to document, submit, and remove
+      document.body.appendChild(form);
+      form.submit();
+      document.body.removeChild(form);
+    } catch (error) {
+      console.error("Error switching role:", error);
+      alert("Failed to switch role. Please try again.");
+      setLoading(false);
     }
   };
 
-  if (!mounted || !isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-end bg-black/50">
-      <div className="w-full max-w-md h-full bg-[#001337] text-white animate-in slide-in-from-right">
-        <div className="flex justify-between items-center p-6">
-          <h2 className="text-2xl font-bold">Switch Roles</h2>
-          <button onClick={onClose} className="text-white hover:text-gray-300">
-            <X size={24} />
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Switch Role</DialogTitle>
+        </DialogHeader>
 
-        <div className="p-6 space-y-4">
-          {roles.map((role) => (
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-2 gap-4">
             <Button
-              key={role.id}
-              onClick={() => handleSelectRole(role.id)}
-              className="w-full justify-start bg-white hover:bg-gray-100 text-black h-14 text-lg"
+              variant={currentRole === "attendee" ? "default" : "outline"}
+              className="h-24 flex flex-col items-center justify-center"
+              onClick={() => handleSelectRole(CurrentRole.ATTENDEE)}
+              disabled={loading || currentRole === "attendee"}
             >
-              {role.icon}
-              {role.name}
+              <User className="w-10 h-10 mb-2 text-blue-500" />
+              Attendee
             </Button>
-          ))}
+
+            <Button
+              variant={currentRole === "volunteer" ? "default" : "outline"}
+              className="h-24 flex flex-col items-center justify-center"
+              onClick={() => handleSelectRole(CurrentRole.VOLUNTEER)}
+              disabled={loading || currentRole === "volunteer"}
+            >
+              <Users className="w-10 h-10 mb-2 text-green-500" />
+              Volunteer
+            </Button>
+          </div>
+
+          {loading && (
+            <div className="flex justify-center">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          )}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
