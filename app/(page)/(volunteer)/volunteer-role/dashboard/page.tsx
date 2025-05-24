@@ -6,7 +6,11 @@ import { StatCard } from "@/components/volunteer/stat-card";
 import { EventTable } from "@/components/volunteer/event-table";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import {
+  getVolunteerDashboardStats,
+  DashboardStats,
+} from "@/services/volunteer-dashboard-service";
 
 export default function VolunteerRoleDashboardPage() {
   // Emergency redirect check
@@ -25,9 +29,31 @@ export default function VolunteerRoleDashboardPage() {
   }, []);
 
   const { isLoading } = useAuth();
+  const [dashboardData, setDashboardData] = useState<DashboardStats | null>(
+    null
+  );
+  const [isLoadingData, setIsLoadingData] = useState(true);
+
+  // Fetch dashboard data
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const data = await getVolunteerDashboardStats();
+        setDashboardData(data);
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    if (!isLoading) {
+      fetchDashboardData();
+    }
+  }, [isLoading]);
 
   // Show loading state
-  if (isLoading) {
+  if (isLoading || isLoadingData) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -38,11 +64,11 @@ export default function VolunteerRoleDashboardPage() {
     );
   }
 
-  // Sample data for the dashboard
+  // Create stats array from dashboard data
   const stats = [
     {
       title: "Total Attendee",
-      value: 400,
+      value: dashboardData?.attendeeCount || 0,
       change: {
         value: 8.5,
         isIncrease: true,
@@ -52,7 +78,7 @@ export default function VolunteerRoleDashboardPage() {
     },
     {
       title: "Total Tasks",
-      value: 21,
+      value: dashboardData?.taskCount || 0,
       change: {
         value: 4.3,
         isIncrease: false,
@@ -62,32 +88,13 @@ export default function VolunteerRoleDashboardPage() {
     },
     {
       title: "Total Volunteer",
-      value: 100,
+      value: dashboardData?.volunteerCount || 0,
       change: {
         value: 3.3,
         isIncrease: true,
         period: "past week",
       },
       icon: <UserCheck size={24} className="text-yellow-500" />,
-    },
-  ];
-
-  const events = [
-    {
-      id: 1,
-      name: "BookFair",
-      attendeeCount: 121,
-      attendeeCapacity: 121,
-      volunteerCount: "10/10",
-      progress: 100,
-    },
-    {
-      id: 2,
-      name: "BookFair",
-      attendeeCount: 113,
-      attendeeCapacity: 220,
-      volunteerCount: "16/20",
-      progress: 51,
     },
   ];
 
@@ -101,7 +108,7 @@ export default function VolunteerRoleDashboardPage() {
           </h1>
           <div className="relative w-full h-[200px] md:h-[250px] rounded-lg overflow-hidden">
             <Image
-              src="/assets/images/prom-night.png"
+              src="/icons/user.png"
               alt="BookFair Event"
               fill
               className="object-cover"
@@ -135,7 +142,7 @@ export default function VolunteerRoleDashboardPage() {
         </div>
 
         {/* Events Table */}
-        <EventTable events={events} />
+        <EventTable events={dashboardData?.events || []} />
       </div>
     </div>
   );

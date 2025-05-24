@@ -1,62 +1,71 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { Eye, EyeOff, Facebook, Lock, Mail, User } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
-import { useAuth } from "@/context/auth-context"
-import type { RegisterData } from "@/context/auth-context"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Eye, EyeOff, Facebook, Lock, Mail, User } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/context/auth-context";
+import type { RegisterData } from "@/context/auth-context";
 
 export default function SignupPage() {
   const [formData, setFormData] = useState<RegisterData>({
     email: "",
     password: "",
     fullName: "",
-  })
-  const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const { register } = useAuth()
-  const router = useRouter()
+  const { register } = useAuth();
+  const router = useRouter();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
-    }))
-  }
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setIsLoading(true)
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
 
     try {
-      await register(formData)
-      router.push("/dashboard")
+      await register(formData);
+
+      // Redirect to login with email parameter
+      router.push(`/login?email=${encodeURIComponent(formData.email)}`);
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "Registration failed. Please try again."
-      setError(errorMessage)
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Registration failed. Please try again.";
+      setError(errorMessage);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="flex min-h-screen">
       {/* Left Panel */}
       <div className="hidden md:flex md:w-1/2 bg-[#001337] text-white p-8 flex-col justify-center">
         <div className="mx-auto max-w-md space-y-6">
-          <h1 className="text-4xl font-bold leading-tight">Discover tailored events.</h1>
-          <h2 className="text-3xl font-bold leading-tight">Sign up for personalized recommendations today!</h2>
+          <h1 className="text-4xl font-bold leading-tight">
+            Discover tailored events.
+          </h1>
+          <h2 className="text-3xl font-bold leading-tight">
+            Sign up for personalized recommendations today!
+          </h2>
         </div>
       </div>
 
@@ -103,7 +112,11 @@ export default function SignupPage() {
 
           {/* Signup Form */}
           <form className="space-y-5" onSubmit={handleSubmit}>
-            {error && <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">{error}</div>}
+            {error && (
+              <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">
+                {error}
+              </div>
+            )}
 
             {/* Full Name Input */}
             <div className="space-y-1.5">
@@ -189,7 +202,9 @@ export default function SignupPage() {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-              <p className="text-xs text-gray-500 mt-1">Password must be at least 8 characters long</p>
+              <p className="text-xs text-gray-500 mt-1">
+                Password must be at least 8 characters long
+              </p>
             </div>
 
             {/* Create Account Button */}
@@ -206,7 +221,10 @@ export default function SignupPage() {
           <div className="text-center pt-2">
             <p className="text-sm text-gray-600">
               Already have an account?{" "}
-              <Link href="/login" className="text-blue-600 hover:underline font-medium">
+              <Link
+                href="/login"
+                className="text-blue-600 hover:underline font-medium"
+              >
                 Log In
               </Link>
             </p>
@@ -214,5 +232,5 @@ export default function SignupPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

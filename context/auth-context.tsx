@@ -3,194 +3,113 @@
 import {
   createContext,
   useContext,
-  useEffect,
   useState,
-  type ReactNode,
+  useEffect,
+  ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
-import { SystemRole, type CurrentRole } from "@/types/user";
-import { switchUserRole } from "@/services/role-service";
+import { CurrentRole, SystemRole } from "@/types/user";
+import { apiGet, apiPost } from "@/services/api"; // Make sure this import is added
+import { getUserProfile } from "@/services/auth-service";
 
 // Types
 export interface User {
   id: string;
   email: string;
-  username?: string;
   fullName: string;
+  systemRole: SystemRole;
+  currentRole: CurrentRole;
+  profileImage?: string;
   gender?: string;
   age?: number;
   org?: string;
-  systemRole: SystemRole;
-  currentRole: CurrentRole;
-  createdAt?: string;
-  updatedAt?: string;
 }
 
 interface AuthState {
   user: User | null;
-  accessToken: string | null;
-  refreshToken: string | null;
+  isAuthenticated: boolean;
   isLoading: boolean;
 }
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
-  register: (userData: RegisterData) => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
-  isAuthenticated: boolean;
-  hasRole: (role: SystemRole) => boolean;
+  switchRole: (role: CurrentRole) => Promise<void>;
   hasCurrentRole: (role: CurrentRole) => boolean;
-  switchRole: (role: CurrentRole) => Promise<boolean>;
+  hasRole: (role: SystemRole) => boolean;
 }
 
 export interface RegisterData {
   email: string;
   password: string;
-  username?: string;
   fullName: string;
-  gender?: string;
-  age?: number;
-  org?: string;
+  username?: string;
 }
 
 // Create context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Provider component
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [authState, setAuthState] = useState<AuthState>({
-    user: null,
-    accessToken: null,
-    refreshToken: null,
-    isLoading: true,
-  });
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
-
-  // Initialize auth state from localStorage on mount
-  useEffect(() => {
-    const loadAuthState = () => {
-      try {
-        const storedUser = localStorage.getItem("user");
-        const storedAccessToken = localStorage.getItem("accessToken");
-        const storedRefreshToken = localStorage.getItem("refreshToken");
-
-        setAuthState({
-          user: storedUser ? JSON.parse(storedUser) : null,
-          accessToken: storedAccessToken,
-          refreshToken: storedRefreshToken,
-          isLoading: false,
-        });
-      } catch (error) {
-        console.error("Failed to load auth state:", error);
-        setAuthState((prev) => ({ ...prev, isLoading: false }));
-      }
-    };
-
-    loadAuthState();
-  }, []);
-
-  // Save auth state to localStorage whenever it changes
-  useEffect(() => {
-    if (!authState.isLoading) {
-      if (authState.user) {
-        localStorage.setItem("user", JSON.stringify(authState.user));
-      } else {
-        localStorage.removeItem("user");
-      }
-
-      if (authState.accessToken) {
-        localStorage.setItem("accessToken", authState.accessToken);
-      } else {
-        localStorage.removeItem("accessToken");
-      }
-
-      if (authState.refreshToken) {
-        localStorage.setItem("refreshToken", authState.refreshToken);
-      } else {
-        localStorage.removeItem("refreshToken");
-      }
-    }
-  }, [authState]);
 
   // Login function
   const login = async (email: string, password: string) => {
     try {
-      const response = await fetch(
-        `${
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:3100"
-        }/api/auth/login`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email, password }),
-        }
-      );
+      const response = await apiPost("/api/auth/login", { email, password });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Login failed");
+      if (!response || !response.accessToken) {
+        throw new Error("Invalid response from server");
       }
 
-      const data = await response.json();
+      // Store tokens securely
+      localStorage.setItem("accessToken", response.accessToken);
+      if (response.refreshToken) {
+        localStorage.setItem("refreshToken", response.refreshToken);
+      }
 
-      // Immediately update localStorage
-      localStorage.setItem("user", JSON.stringify(data.user));
-      localStorage.setItem("accessToken", data.accessToken);
-      localStorage.setItem("refreshToken", data.refreshToken);
+      // Store user data
+      localStorage.setItem("user", JSON.stringify(response.user));
 
-      setAuthState({
-        user: data.user,
-        accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
-        isLoading: false,
-      });
+      // Also set cookies for middleware
+      document.cookie = `accessToken=${response.accessToken}; path=/; max-age=900`;
+      document.cookie = `user=${encodeURIComponent(
+        JSON.stringify(response.user)
+      )}; path=/; max-age=900`;
+      document.cookie = `userRole=${response.user.currentRole}; path=/; max-age=900`;
 
-      return data;
-    } catch (error) {
+      setUser(response.user);
+      setIsAuthenticated(true);
+    } catch (error: unknown) {
       console.error("Login error:", error);
       throw error;
     }
   };
 
   // Register function
-  const register = async (userData: RegisterData) => {
+  const register = async (data: RegisterData) => {
     try {
-      const response = await fetch(
-        `${
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:3100"
-        }/api/auth/register`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(userData),
-        }
-      );
+      const response = await apiPost("/api/auth/register", data);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Registration failed");
+      if (!response || !response.accessToken) {
+        throw new Error("Invalid response from server");
       }
 
-      const data = await response.json();
+      // Store tokens securely
+      localStorage.setItem("accessToken", response.accessToken);
+      if (response.refreshToken) {
+        localStorage.setItem("refreshToken", response.refreshToken);
+      }
 
-      // Immediately update localStorage
-      localStorage.setItem("user", JSON.stringify(data.user));
-      localStorage.setItem("accessToken", data.accessToken);
-      localStorage.setItem("refreshToken", data.refreshToken);
+      // Store user data
+      localStorage.setItem("user", JSON.stringify(response.user));
 
-      setAuthState({
-        user: data.user,
-        accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
-        isLoading: false,
-      });
-
-      return data;
-    } catch (error) {
+      setUser(response.user);
+      setIsAuthenticated(true);
+    } catch (error: unknown) {
       console.error("Registration error:", error);
       throw error;
     }
@@ -199,138 +118,176 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Logout function
   const logout = async () => {
     try {
-      if (authState.accessToken && authState.refreshToken) {
-        await fetch(
-          `${
-            process.env.NEXT_PUBLIC_API_URL || "http://localhost:3100"
-          }/api/auth/logout`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${authState.accessToken}`,
-            },
-            body: JSON.stringify({ refreshToken: authState.refreshToken }),
-          }
-        );
-      }
-    } catch (error) {
+      await apiPost("/api/auth/logout", {});
+    } catch (error: unknown) {
       console.error("Logout error:", error);
     } finally {
-      localStorage.removeItem("user");
+      // Clear local storage
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
+      localStorage.removeItem("user");
 
-      setAuthState({
-        user: null,
-        accessToken: null,
-        refreshToken: null,
-        isLoading: false,
-      });
+      // Clear cookies
+      document.cookie = "accessToken=; Max-Age=0; path=/;";
+      document.cookie = "refreshToken=; Max-Age=0; path=/;";
+      document.cookie = "user=; Max-Age=0; path=/;";
+      document.cookie = "userRole=; Max-Age=0; path=/;";
 
-      router.push("/login");
+      // Update state
+      setUser(null);
+      setIsAuthenticated(false);
+
+      // Redirect to home
+      router.push("/");
     }
   };
 
   // Switch role function
   const switchRole = async (role: CurrentRole) => {
     try {
-      setAuthState((prev) => ({ ...prev, isLoading: true }));
+      setIsLoading(true);
 
-      // Call the backend to switch roles and get new tokens
-      const response = await switchUserRole(role);
+      const response = await apiPost("/api/users/switch-role", { role });
 
-      // Verify we have all the required data from the backend
-      if (response && response.user && response.accessToken) {
-        // Force currentRole to match the requested role regardless of backend response
-        const updatedUser = {
-          ...response.user,
-          currentRole: role,
-        };
-
-        console.log("Updating auth state with new role:", role);
-
-        // Update localStorage with the new user and tokens
-        localStorage.setItem("user", JSON.stringify(updatedUser));
-        localStorage.setItem("accessToken", response.accessToken);
-
-        if (response.refreshToken) {
-          localStorage.setItem("refreshToken", response.refreshToken);
-        }
-
-        // Then update state
-        setAuthState({
-          user: updatedUser,
-          accessToken: response.accessToken,
-          refreshToken: response.refreshToken || authState.refreshToken,
-          isLoading: false,
-        });
-
-        return true;
-      } else {
-        console.error("Invalid response from role switching API:", response);
-        setAuthState((prev) => ({ ...prev, isLoading: false }));
-        return false;
+      if (!response || !response.accessToken) {
+        throw new Error("Failed to switch role");
       }
-    } catch (error) {
-      console.error("Failed to switch role:", error);
-      setAuthState((prev) => ({ ...prev, isLoading: false }));
+
+      // Update local storage
+      localStorage.setItem("accessToken", response.accessToken);
+      localStorage.setItem("user", JSON.stringify(response.user));
+
+      // Update cookies
+      document.cookie = `accessToken=${response.accessToken}; path=/; max-age=900`;
+      document.cookie = `userRole=${role}; path=/; max-age=900`;
+      document.cookie = `user=${encodeURIComponent(
+        JSON.stringify(response.user)
+      )}; path=/; max-age=900`;
+
+      // Update state
+      setUser(response.user);
+      setIsLoading(false);
+
+      // Redirect based on role
+      if (role === CurrentRole.VOLUNTEER) {
+        window.location.href = "/volunteer-role/dashboard";
+      } else {
+        window.location.href = "/";
+      }
+    } catch (error: unknown) {
+      console.error("Error switching role:", error);
+      setIsLoading(false);
+      throw error;
+    }
+  };
+
+  // Check if user has a specific current role
+  const hasCurrentRole = (role: CurrentRole): boolean => {
+    if (user?.currentRole === role) return true;
+
+    try {
+      const userStr = localStorage.getItem("user");
+      if (!userStr) return false;
+
+      const userData = JSON.parse(userStr);
+      return userData.currentRole === role;
+    } catch (error: unknown) {
+      console.error("Error checking role in localStorage:", error);
       return false;
     }
   };
 
-  // Role checking helpers
+  // Check if user has a specific system role
   const hasRole = (role: SystemRole): boolean => {
-    if (!authState.user) return false;
+    if (user?.systemRole === role) return true;
 
-    // Define role hierarchy
-    const roleHierarchy = {
-      [SystemRole.SUPER_ADMIN]: 3,
-      [SystemRole.ADMIN]: 2,
-      [SystemRole.USER]: 1,
+    try {
+      const userStr = localStorage.getItem("user");
+      if (!userStr) return false;
+
+      const userData = JSON.parse(userStr);
+      return userData.systemRole === role;
+    } catch (error: unknown) {
+      console.error("Error checking system role in localStorage:", error);
+      return false;
+    }
+  };
+
+  // Helper function to get cookie value
+  const getCookie = (name: string) => {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop()?.split(";").shift();
+    return null;
+  };
+
+  // Initialize auth state from localStorage or cookies
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        // Get role from the non-HttpOnly cookie
+        const userRole = getCookie("userRole");
+
+        // Try to get user from localStorage first
+        const userStr = localStorage.getItem("user");
+        if (userStr) {
+          const userData = JSON.parse(userStr);
+
+          // Update role if cookie has different value
+          if (userRole && userData.currentRole !== userRole) {
+            userData.currentRole = userRole;
+            localStorage.setItem("user", JSON.stringify(userData));
+          }
+
+          setUser(userData);
+          setIsAuthenticated(true);
+        } else {
+          // If not in localStorage, try to fetch from API
+          try {
+            const userData = await apiGet("/api/users/me");
+            if (userData) {
+              // Update role if cookie has different value
+              if (userRole && userData.currentRole !== userRole) {
+                userData.currentRole = userRole;
+              }
+
+              localStorage.setItem("user", JSON.stringify(userData));
+              setUser(userData);
+              setIsAuthenticated(true);
+            }
+          } catch (apiError: unknown) {
+            console.error("Error fetching user from API:", apiError);
+            setUser(null);
+            setIsAuthenticated(false);
+          }
+        }
+      } catch (error: unknown) {
+        console.error("Error fetching user data:", error);
+        setUser(null);
+        setIsAuthenticated(false);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    const userRoleWeight = roleHierarchy[authState.user.systemRole];
-    const requiredRoleWeight = roleHierarchy[role];
-
-    return userRoleWeight >= requiredRoleWeight;
-  };
-
-  const hasCurrentRole = (role: CurrentRole): boolean => {
-    // IMPROVED ROLE CHECKING: First check auth state
-    if (authState.user && authState.user.currentRole === role) {
-      return true;
-    }
-
-    // If auth state doesn't have the role, check localStorage as fallback
-    try {
-      const storedUser = localStorage.getItem("user");
-      if (storedUser) {
-        const user = JSON.parse(storedUser);
-        return user.currentRole === role;
-      }
-    } catch (e) {
-      console.error("Error checking role in localStorage:", e);
-    }
-
-    return false;
-  };
+    fetchUser();
+  }, []);
 
   const value = {
-    ...authState,
+    user,
+    isAuthenticated,
+    isLoading,
     login,
     register,
     logout,
     switchRole,
-    isAuthenticated: !!authState.user && !!authState.accessToken,
-    hasRole,
     hasCurrentRole,
+    hasRole,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// Custom hook to use the auth context
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {

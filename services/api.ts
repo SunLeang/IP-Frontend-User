@@ -66,61 +66,44 @@ export async function apiGet(endpoint: string) {
   }
 }
 
-// Update the apiPost function to add more token refresh capabilities
+// Update  API service to not throw errors for public pages:
 
 export async function apiPost(endpoint: string, data: any) {
-  try {
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      ...getAuthHeader(),
-    };
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3100";
 
-    let response = await fetch(`${API_URL}${endpoint}`, {
+  try {
+    const response = await fetch(`${apiUrl}${endpoint}`, {
       method: "POST",
-      headers,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("accessToken") || ""}`,
+      },
+      credentials: "include",
       body: JSON.stringify(data),
     });
 
-    // Add retry logic for both 401 and 403 errors
-    if (response.status === 401 || response.status === 403) {
-      // If this is already the /api/users/switch-role endpoint, don't try to refresh
-      if (endpoint !== "/api/users/switch-role") {
-        console.log(
-          "Attempting token refresh due to",
-          response.status,
-          "error"
-        );
-        const newAccessToken = await refreshAccessToken();
-        if (newAccessToken) {
-          console.log("Token refreshed successfully, retrying request");
-          // Retry original request with new token
-          const retryHeaders: Record<string, string> = {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${newAccessToken}`,
-          };
-          response = await fetch(`${API_URL}${endpoint}`, {
-            method: "POST",
-            headers: retryHeaders,
-            body: JSON.stringify(data),
-          });
-        } else {
-          console.error("Token refresh failed");
-          throw new Error("Unauthorized - Please log in");
-        }
-      } else {
-        console.error("Permission error on switch-role endpoint");
-      }
-    }
-
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error(`API Error (${response.status}):`, errorData);
-      throw new Error(errorData.message || `Error: ${response.statusText}`);
+      const error = await response.json().catch(() => ({
+        message: `HTTP ${response.status}: ${response.statusText}`,
+      }));
+
+      // Don't throw unauthorized errors for certain endpoints
+      if (response.status === 401) {
+        console.warn("Unauthorized request:", endpoint);
+        // For role switching, this is a critical error
+        if (endpoint.includes("switch-role")) {
+          throw new Error("Unauthorized - Please log in again");
+        }
+        // For other endpoints, return null instead of throwing
+        return null;
+      }
+
+      throw new Error(error.message || `API error: ${response.status}`);
     }
 
-    return await response.json();
+    return response.json();
   } catch (error) {
-    console.error(`Error in apiPost(${endpoint}):`, error);
+    console.error("API request failed:", error);
     throw error;
   }
 }

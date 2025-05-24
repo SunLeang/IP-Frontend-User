@@ -270,7 +270,7 @@ export default function VolunteerDetailPage({
             <div className="flex items-center">
               <div className="w-10 h-10 rounded-full overflow-hidden mr-3">
                 <Image
-                  src="/assets/icons/user.png"
+                  src="/icons/user.png"
                   alt="Host"
                   width={40}
                   height={40}

@@ -43,11 +43,6 @@ export default function Navbar() {
     setIsSwitchRolesModalOpen(true);
   };
 
-  const handleSelectRole = (role: string) => {
-    console.log(`Selected role: ${role}`);
-    setIsSwitchRolesModalOpen(false);
-  };
-
   const handleLogout = async () => {
     await logout();
     router.push("/login");
@@ -291,7 +286,7 @@ export default function Navbar() {
       <SwitchRolesModal
         isOpen={isSwitchRolesModalOpen}
         onClose={() => setIsSwitchRolesModalOpen(false)}
-        onSelectRole={handleSelectRole}
+        currentRole={user?.currentRole?.toLowerCase()}
       />
     </>
   );

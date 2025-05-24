@@ -100,7 +100,7 @@ function CommentCard({ comment }: { comment: Comment }) {
     <div className="border rounded-lg p-4">
       <div className="flex items-start gap-3">
         <Image
-          src={comment.user.image || "/assets/icons/user.png"}
+          src={comment.user.image || "/icons/user.png"}
           alt={comment.user.name}
           width={40}
           height={40}
@@ -145,7 +145,7 @@ function CommentCard({ comment }: { comment: Comment }) {
                 <div key={reply.id} className="border-l-2 border-gray-200 pl-3">
                   <div className="flex items-start gap-3">
                     <Image
-                      src={reply.user.image || "/assets/icons/user.png"}
+                      src={reply.user.image || "/icons/user.png"}
                       alt={reply.user.name}
                       width={30}
                       height={30}

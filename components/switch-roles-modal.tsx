@@ -12,6 +12,7 @@ import { Loader2, User, Users } from "lucide-react";
 import { CurrentRole } from "@/types/user";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
+import { apiPost } from "@/services/api";
 
 interface SwitchRolesModalProps {
   isOpen: boolean;
@@ -25,55 +26,51 @@ export function SwitchRolesModal({
   currentRole = "attendee",
 }: SwitchRolesModalProps) {
   const [loading, setLoading] = useState(false);
-  const { switchRole } = useAuth();
   const router = useRouter();
+
+  // Normalize the currentRole to lowercase for consistent comparison
+  const normalizedCurrentRole = currentRole?.toLowerCase() || "attendee";
 
   const handleSelectRole = async (role: CurrentRole) => {
     setLoading(true);
     try {
-      // First close modal
       onClose();
 
-      // Create a form and submit it to the backend directly
-      // This bypasses all the client-side auth state management issues
-      const form = document.createElement("form");
-      form.method = "POST";
-      form.action = `${
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:3100"
-      }/api/users/switch-role-redirect`;
+      console.log(`Attempting to switch to role: ${role}`);
 
-      // Add the role to switch to
-      const roleInput = document.createElement("input");
-      roleInput.type = "hidden";
-      roleInput.name = "role";
-      roleInput.value = role;
-      form.appendChild(roleInput);
+      const response = await apiPost("/api/users/switch-role", { role });
 
-      // Add the redirect URL based on the role
-      const redirectInput = document.createElement("input");
-      redirectInput.type = "hidden";
-      redirectInput.name = "redirectUrl";
-      redirectInput.value =
-        role === CurrentRole.VOLUNTEER
-          ? `${window.location.origin}/volunteer-role/dashboard?t=${Date.now()}`
-          : `${window.location.origin}/?t=${Date.now()}`;
-      form.appendChild(redirectInput);
+      if (!response || !response.accessToken) {
+        throw new Error("Failed to switch role");
+      }
 
-      // Add the authorization token
-      const tokenInput = document.createElement("input");
-      tokenInput.type = "hidden";
-      tokenInput.name = "token";
-      tokenInput.value = localStorage.getItem("accessToken") || "";
-      form.appendChild(tokenInput);
+      console.log(`Successfully switched to ${role}`, response);
 
-      // Append to document, submit, and remove
-      document.body.appendChild(form);
-      form.submit();
-      document.body.removeChild(form);
-    } catch (error) {
+      // Update localStorage immediately
+      localStorage.setItem("accessToken", response.accessToken);
+      localStorage.setItem("user", JSON.stringify(response.user));
+
+      // Update cookies for middleware
+      document.cookie = `accessToken=${response.accessToken}; path=/; max-age=900`;
+      document.cookie = `userRole=${role}; path=/; max-age=900`;
+      document.cookie = `user=${encodeURIComponent(
+        JSON.stringify(response.user)
+      )}; path=/; max-age=900`;
+
+      // Force redirect with page reload to ensure clean state
+      if (role === CurrentRole.VOLUNTEER) {
+        window.location.href = "/volunteer-role/dashboard";
+      } else {
+        window.location.href = "/";
+      }
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       console.error("Error switching role:", error);
-      alert("Failed to switch role. Please try again.");
       setLoading(false);
+
+      // Show error to user
+      alert(`Failed to switch to ${role} role: ${errorMessage}`);
     }
   };
 
@@ -87,20 +84,24 @@ export function SwitchRolesModal({
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-2 gap-4">
             <Button
-              variant={currentRole === "attendee" ? "default" : "outline"}
+              variant={
+                normalizedCurrentRole === "attendee" ? "default" : "outline"
+              }
               className="h-24 flex flex-col items-center justify-center"
               onClick={() => handleSelectRole(CurrentRole.ATTENDEE)}
-              disabled={loading || currentRole === "attendee"}
+              disabled={loading || normalizedCurrentRole === "attendee"}
             >
               <User className="w-10 h-10 mb-2 text-blue-500" />
               Attendee
             </Button>
 
             <Button
-              variant={currentRole === "volunteer" ? "default" : "outline"}
+              variant={
+                normalizedCurrentRole === "volunteer" ? "default" : "outline"
+              }
               className="h-24 flex flex-col items-center justify-center"
               onClick={() => handleSelectRole(CurrentRole.VOLUNTEER)}
-              disabled={loading || currentRole === "volunteer"}
+              disabled={loading || normalizedCurrentRole === "volunteer"}
             >
               <Users className="w-10 h-10 mb-2 text-green-500" />
               Volunteer

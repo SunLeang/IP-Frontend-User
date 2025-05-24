@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 // Helper function to ensure image paths are properly formatted
 function getValidImageSrc(src: string | undefined | null): string {
-  if (!src) return "/assets/images/prom-night.png"; // Default image
+  if (!src) return "/icons/user.png"; // Default image
 
   if (src.startsWith("http") || src.startsWith("/")) {
     return src;
@@ -179,7 +179,7 @@ const sampleVolunteerOpportunities: VolunteerOpportunity[] = Array.from(
   (_, i) => ({
     id: `volunteer-${i + 1}`,
     title: "Requesting Volunteer on BookFair",
-    image: "/assets/images/prom-night.png",
+    image: "/icons/user.png",
     category: "Technology & Innovation",
     date: {
       month: "NOV",
@@ -202,7 +202,7 @@ function VolunteerCard({ opportunity }: { opportunity: VolunteerOpportunity }) {
           ✨ YOU ARE INVITED ✨
         </div>
         <Image
-          src={opportunity.image || "/assets/images/prom-night.png"}
+          src={opportunity.image || "/icons/user.png"}
           alt={opportunity.title}
           width={400}
           height={200}

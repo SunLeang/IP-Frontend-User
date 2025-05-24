@@ -1,48 +1,49 @@
-import { NextResponse } from "next/server"
-import type { NextRequest } from "next/server"
-
-// Define which routes require authentication
-const protectedRoutes = ["/dashboard", "/profile", "/events/create", "/volunteer-role"]
-
-// Define routes that should redirect to dashboard if already authenticated
-const authRoutes = ["/login", "/signup"]
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
+  const path = request.nextUrl.pathname;
+  const searchParams = request.nextUrl.searchParams;
 
-  // Get the authentication token from the cookies
-  const token = request.cookies.get("accessToken")?.value
+  // For volunteer routes, verify proper authentication
+  if (path.startsWith("/volunteer-role")) {
+    // Allow bypass parameters during role switching
+    if (searchParams.get("reset") === "true") {
+      return NextResponse.next();
+    }
 
-  // Check if the route requires authentication
-  const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route))
+    const userRole = request.cookies.get("userRole")?.value;
+    const accessToken = request.cookies.get("accessToken")?.value;
 
-  // Check if the route is an auth route (login/signup)
-  const isAuthRoute = authRoutes.some((route) => pathname === route || pathname.startsWith(route))
+    if (!accessToken) {
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("returnTo", path);
+      return NextResponse.redirect(loginUrl);
+    }
 
-  // If the route requires authentication and there's no token, redirect to login
-  if (isProtectedRoute && !token) {
-    const url = new URL("/login", request.url)
-    url.searchParams.set("from", pathname)
-    return NextResponse.redirect(url)
+    if (userRole !== "VOLUNTEER") {
+      const unauthorizedUrl = new URL("/unauthorized", request.url);
+      unauthorizedUrl.searchParams.set("reason", "role");
+      unauthorizedUrl.searchParams.set("current", userRole || "unknown");
+      unauthorizedUrl.searchParams.set("required", "VOLUNTEER");
+      return NextResponse.redirect(unauthorizedUrl);
+    }
   }
 
-  // If the user is already authenticated and tries to access login/signup, redirect to dashboard
-  if (isAuthRoute && token) {
-    return NextResponse.redirect(new URL("/dashboard", request.url))
+  // For root path, check if user is volunteer and redirect to volunteer dashboard
+  if (path === "/") {
+    const userRole = request.cookies.get("userRole")?.value;
+
+    if (userRole === "VOLUNTEER") {
+      return NextResponse.redirect(
+        new URL("/volunteer-role/dashboard", request.url)
+      );
+    }
   }
 
-  return NextResponse.next()
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    "/((?!api|_next/static|_next/image|favicon.ico).*)",
-  ],
-}
+  matcher: ["/", "/volunteer-role/:path*"],
+};

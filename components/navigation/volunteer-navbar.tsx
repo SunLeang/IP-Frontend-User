@@ -91,7 +91,7 @@ export function VolunteerNavbar() {
               >
                 <div className="w-8 h-8 rounded-full overflow-hidden">
                   <Image
-                    src="/assets/icons/user.png"
+                    src="/icons/user.png"
                     alt="User"
                     width={32}
                     height={32}
