@@ -34,11 +34,26 @@ export async function switchUserRole(role: CurrentRole): Promise<any> {
   }
 }
 
+interface VolunteerApplication {
+  id: string;
+  status: string;
+  eventId: string;
+  userId: string;
+  whyVolunteer?: string;
+  cvPath?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export async function checkVolunteerEligibility(): Promise<boolean> {
   try {
-    const applications = await apiGet("/api/volunteer/my-applications");
+    const applications: VolunteerApplication[] = await apiGet(
+      "/api/volunteer/my-applications"
+    );
     // Check if user has at least one approved volunteer application
-    return applications.some((app) => app.status === "APPROVED");
+    return applications.some(
+      (app: VolunteerApplication) => app.status === "APPROVED"
+    );
   } catch (error) {
     console.error("Failed to check volunteer eligibility:", error);
     return false;

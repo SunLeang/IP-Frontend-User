@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Star } from "lucide-react";
@@ -44,26 +44,36 @@ export function EventCard({
   interested,
 }: EventCardProps) {
   const { addInterest, removeInterest, isInterested } = useInterest();
+  const [isToggling, setIsToggling] = useState(false);
   const saved = isInterested(id);
 
-  const handleInterestToggle = (e: React.MouseEvent) => {
+  const handleInterestToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (saved) {
-      removeInterest(id);
-    } else {
-      addInterest({
-        id,
-        title,
-        image: image || "",
-        category,
-        date,
-        venue,
-        time,
-        price,
-        interested,
-      });
+    if (isToggling) return; // Prevent double clicks
+
+    setIsToggling(true);
+    try {
+      if (saved) {
+        await removeInterest(id);
+      } else {
+        await addInterest({
+          id,
+          title,
+          image: image || "",
+          category,
+          date,
+          venue,
+          time,
+          price,
+          interested,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to toggle interest:", error);
+    } finally {
+      setIsToggling(false);
     }
   };
 
@@ -84,6 +94,7 @@ export function EventCard({
           <button
             className="absolute top-2 right-2 bg-white p-1 rounded-full hover:bg-gray-100"
             onClick={handleInterestToggle}
+            disabled={isToggling}
           >
             <Star
               className={`h-5 w-5 ${

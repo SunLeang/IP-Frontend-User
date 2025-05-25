@@ -1,78 +1,91 @@
-"use client"
+"use client";
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import { toggleEventInterest, getInterestedEvents } from "@/services/event-service"
-import { useAuth } from "./auth-context"
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  type ReactNode,
+} from "react";
+import {
+  toggleEventInterest,
+  getInterestedEvents,
+} from "@/services/event-service";
+import { useAuth } from "./auth-context";
 
 export interface Event {
-  id: string
-  title: string
-  image: string
-  category: string
+  id: string;
+  title: string;
+  image: string;
+  category: string;
   date: {
-    month: string
-    day: string
-  }
-  venue: string
-  time: string
-  price: number
-  interested: number
+    month: string;
+    day: string;
+  };
+  venue: string;
+  time: string;
+  price: number;
+  interested: number;
 }
 
 interface InterestContextType {
-  interestedEvents: Event[]
-  addInterest: (event: Event) => void
-  removeInterest: (id: string) => void
-  isInterested: (id: string) => boolean
-  isLoading: boolean
-  error: string | null
+  interestedEvents: Event[];
+  addInterest: (event: Event) => Promise<void>;
+  removeInterest: (id: string) => Promise<void>;
+  isInterested: (id: string) => boolean;
+  isLoading: boolean;
+  error: string | null;
+  refreshInterests: () => Promise<void>;
 }
 
-const InterestContext = createContext<InterestContextType | undefined>(undefined)
+const InterestContext = createContext<InterestContextType | undefined>(
+  undefined
+);
 
 export function InterestProvider({ children }: { children: ReactNode }) {
-  const [interestedEvents, setInterestedEvents] = useState<Event[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const { user, isAuthenticated } = useAuth()
+  const [interestedEvents, setInterestedEvents] = useState<Event[]>([]);
+  const [isLoading, setIsLoading] = useState(true); // Start with loading true
+  const [error, setError] = useState<string | null>(null);
+  const { user, isAuthenticated } = useAuth();
 
-  // Load interested events from localStorage on mount for guest users
-  useEffect(() => {
+  // Function to fetch interested events from API
+  const fetchInterestedEvents = async () => {
     if (!isAuthenticated) {
-      const storedEvents = localStorage.getItem("interestedEvents")
+      // For non-authenticated users, load from localStorage
+      const storedEvents = localStorage.getItem("interestedEvents");
       if (storedEvents) {
         try {
-          setInterestedEvents(JSON.parse(storedEvents))
+          setInterestedEvents(JSON.parse(storedEvents));
         } catch (error) {
-          console.error("Failed to parse interested events from localStorage:", error)
+          console.error(
+            "Failed to parse interested events from localStorage:",
+            error
+          );
         }
       }
+      setIsLoading(false);
+      return;
     }
-  }, [isAuthenticated])
 
-  // Load interested events from API when user is authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchInterestedEvents()
-    }
-  }, [isAuthenticated])
-
-  const fetchInterestedEvents = async () => {
-    if (!isAuthenticated) return
-
-    setIsLoading(true)
-    setError(null)
+    setIsLoading(true);
+    setError(null);
 
     try {
-      const events = await getInterestedEvents()
-      if (events && events.length > 0) {
+      console.log("Fetching interested events from API...");
+      const events = await getInterestedEvents();
+      console.log("Fetched events:", events);
+
+      if (events && Array.isArray(events) && events.length > 0) {
         const transformedEvents = events.map((event) => ({
           id: event.id,
           title: event.name,
           image: event.profileImage || "/assets/images/event-placeholder.png",
           category: event.category?.name || "Uncategorized",
           date: {
-            month: new Date(event.dateTime).toLocaleString("en-US", { month: "short" }).substring(0, 3).toUpperCase(),
+            month: new Date(event.dateTime)
+              .toLocaleString("en-US", { month: "short" })
+              .substring(0, 3)
+              .toUpperCase(),
             day: new Date(event.dateTime).getDate().toString(),
           },
           venue: event.locationDesc,
@@ -83,77 +96,146 @@ export function InterestProvider({ children }: { children: ReactNode }) {
           }),
           price: 0,
           interested: event._count?.interestedUsers || 0,
-        }))
-        setInterestedEvents(transformedEvents)
+        }));
+
+        console.log("Transformed events:", transformedEvents);
+        setInterestedEvents(transformedEvents);
+
+        // Also sync to localStorage for backup
+        localStorage.setItem(
+          "interestedEvents",
+          JSON.stringify(transformedEvents)
+        );
       } else {
-        setInterestedEvents([])
+        console.log("No interested events found");
+        setInterestedEvents([]);
+        localStorage.removeItem("interestedEvents");
       }
     } catch (error) {
-      console.error("Failed to fetch interested events:", error)
-      setError(error instanceof Error ? error.message : "Failed to fetch interested events")
-    } finally {
-      setIsLoading(false)
-    }
-  }
+      console.error("Failed to fetch interested events:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch interested events"
+      );
 
-  // Save interested events to localStorage whenever they change (for guest users)
-  useEffect(() => {
-    if (!isAuthenticated) {
-      localStorage.setItem("interestedEvents", JSON.stringify(interestedEvents))
+      // Fallback to localStorage if API fails
+      const storedEvents = localStorage.getItem("interestedEvents");
+      if (storedEvents) {
+        try {
+          setInterestedEvents(JSON.parse(storedEvents));
+        } catch (parseError) {
+          console.error("Failed to parse stored events:", parseError);
+        }
+      }
+    } finally {
+      setIsLoading(false);
     }
-  }, [interestedEvents, isAuthenticated])
+  };
+
+  // Load interested events when component mounts or authentication changes
+  useEffect(() => {
+    fetchInterestedEvents();
+  }, [isAuthenticated]); // Re-fetch when auth status changes
 
   const addInterest = async (event: Event) => {
     if (!isAuthenticated) {
       // For guest users, store in localStorage
       setInterestedEvents((prev) => {
         if (prev.some((e) => e.id === event.id)) {
-          return prev
+          return prev;
         }
-        return [...prev, event]
-      })
-      return
+        const newEvents = [...prev, event];
+        localStorage.setItem("interestedEvents", JSON.stringify(newEvents));
+        return newEvents;
+      });
+      return;
     }
 
-    setError(null)
+    // Optimistic update - add to UI immediately
+    setInterestedEvents((prev) => {
+      if (prev.some((e) => e.id === event.id)) {
+        return prev;
+      }
+      return [...prev, event];
+    });
+
+    setError(null);
     try {
-      const result = await toggleEventInterest(event.id)
+      console.log("Adding interest for event:", event.id);
+      const result = await toggleEventInterest(event.id);
+      console.log("Add interest result:", result);
+
       if (result.success) {
-        setInterestedEvents((prev) => {
-          if (prev.some((e) => e.id === event.id)) {
-            return prev
-          }
-          return [...prev, event]
-        })
+        // Update localStorage
+        const updatedEvents = [...interestedEvents, event];
+        localStorage.setItem("interestedEvents", JSON.stringify(updatedEvents));
+      } else {
+        // Revert optimistic update on failure
+        setInterestedEvents((prev) => prev.filter((e) => e.id !== event.id));
       }
     } catch (error) {
-      console.error("Failed to add interest:", error)
-      setError(error instanceof Error ? error.message : "Failed to add interest")
+      console.error("Failed to add interest:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to add interest"
+      );
+
+      // Revert optimistic update on error
+      setInterestedEvents((prev) => prev.filter((e) => e.id !== event.id));
     }
-  }
+  };
 
   const removeInterest = async (eventId: string) => {
     if (!isAuthenticated) {
       // For guest users, remove from localStorage
-      setInterestedEvents((prev) => prev.filter((event) => event.id !== eventId))
-      return
+      setInterestedEvents((prev) => {
+        const newEvents = prev.filter((event) => event.id !== eventId);
+        localStorage.setItem("interestedEvents", JSON.stringify(newEvents));
+        return newEvents;
+      });
+      return;
     }
 
-    setError(null)
+    // Optimistic update - remove from UI immediately
+    const eventToRemove = interestedEvents.find((e) => e.id === eventId);
+    setInterestedEvents((prev) => prev.filter((event) => event.id !== eventId));
+
+    setError(null);
     try {
-      const result = await toggleEventInterest(eventId)
+      console.log("Removing interest for event:", eventId);
+      const result = await toggleEventInterest(eventId);
+      console.log("Remove interest result:", result);
+
       if (result.success) {
-        setInterestedEvents((prev) => prev.filter((event) => event.id !== eventId))
+        // Update localStorage
+        const updatedEvents = interestedEvents.filter((e) => e.id !== eventId);
+        localStorage.setItem("interestedEvents", JSON.stringify(updatedEvents));
+      } else {
+        // Revert optimistic update on failure
+        if (eventToRemove) {
+          setInterestedEvents((prev) => [...prev, eventToRemove]);
+        }
       }
     } catch (error) {
-      console.error("Failed to remove interest:", error)
-      setError(error instanceof Error ? error.message : "Failed to remove interest")
+      console.error("Failed to remove interest:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to remove interest"
+      );
+
+      // Revert optimistic update on error
+      if (eventToRemove) {
+        setInterestedEvents((prev) => [...prev, eventToRemove]);
+      }
     }
-  }
+  };
 
   const isInterested = (eventId: string) => {
-    return interestedEvents.some((event) => event.id === eventId)
-  }
+    return interestedEvents.some((event) => event.id === eventId);
+  };
+
+  const refreshInterests = async () => {
+    await fetchInterestedEvents();
+  };
 
   return (
     <InterestContext.Provider
@@ -164,17 +246,18 @@ export function InterestProvider({ children }: { children: ReactNode }) {
         isInterested,
         isLoading,
         error,
+        refreshInterests,
       }}
     >
       {children}
     </InterestContext.Provider>
-  )
+  );
 }
 
 export function useInterest() {
-  const context = useContext(InterestContext)
+  const context = useContext(InterestContext);
   if (context === undefined) {
-    throw new Error("useInterest must be used within an InterestProvider")
+    throw new Error("useInterest must be used within an InterestProvider");
   }
-  return context
+  return context;
 }

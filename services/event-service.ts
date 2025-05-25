@@ -66,24 +66,33 @@ export async function getEventById(id: string): Promise<Event | null> {
 // Interest-related functions based on the provided backend code
 export async function toggleEventInterest(
   eventId: string
-): Promise<{ success: boolean }> {
+): Promise<{ success: boolean; isInterested: boolean }> {
   try {
-    // Check if already interested
-    const checkResult = await apiGet(`/api/interests/check/${eventId}`);
+    console.log("Toggling interest for event:", eventId);
 
-    if (checkResult.interested) {
+    // First check current interest status
+    const checkResponse = await apiGet(`/api/interests/check/${eventId}`);
+    console.log("Current interest status:", checkResponse);
+
+    let result;
+    if (checkResponse && checkResponse.interested) {
       // If already interested, remove interest
+      console.log("Removing interest...");
       await apiDelete(`/api/interests/event/${eventId}`);
+      result = { success: true, isInterested: false };
     } else {
       // If not interested, add interest
+      console.log("Adding interest...");
       await apiPost("/api/interests", { eventId });
+      result = { success: true, isInterested: true };
     }
 
-    return { success: true };
+    console.log("Toggle result:", result);
+    return result;
   } catch (error) {
     console.error(`Failed to toggle interest for event ${eventId}:`, error);
     if (error instanceof Error && error.message.includes("Unauthorized")) {
-      throw new Error("Please log in to add this event to your interests");
+      throw new Error("Please log in to manage your interests");
     }
     throw error;
   }
@@ -91,16 +100,27 @@ export async function toggleEventInterest(
 
 export async function getInterestedEvents(): Promise<Event[]> {
   try {
+    console.log("Fetching interested events from API...");
     const response = await apiGet("/api/interests/my-interests");
+    console.log("API response:", response);
 
-    if (response && response.data) {
-      return response.data.map((item: any) => item.event);
+    if (response && response.data && Array.isArray(response.data)) {
+      const events = response.data.map((item: any) => item.event);
+      console.log("Extracted events:", events);
+      return events;
+    } else if (response && Array.isArray(response)) {
+      // In case the response is directly an array
+      console.log("Direct array response:", response);
+      return response;
     }
+
+    console.log("No events data found in response");
     return [];
   } catch (error) {
     console.error("Failed to fetch interested events:", error);
     // If unauthorized, just return empty array instead of throwing
     if (error instanceof Error && error.message.includes("Unauthorized")) {
+      console.log("User not authorized, returning empty array");
       return [];
     }
     throw error;
@@ -112,7 +132,6 @@ export async function joinEvent(
   eventId: string
 ): Promise<{ success: boolean }> {
   try {
-    
     const user = JSON.parse(localStorage.getItem("user") || "null");
     if (!user?.id) throw new Error("User not logged in");
 

@@ -6,12 +6,25 @@ import { CategorySection } from "@/components/home/category-section";
 import { EventsSection } from "@/components/home/events-section";
 import { getCategories, type Category } from "@/services/category-service";
 import { getEvents, type Event } from "@/services/event-service";
+import { useInterest } from "@/context/interest-context";
+import { useAuth } from "@/context/auth-context";
 
 export default function Home() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [publishedEvents, setPublishedEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // for interest context
+  const { isLoading: interestLoading, refreshInterests } = useInterest();
+  const { isAuthenticated } = useAuth();
+
+  // for refreshing interests when user logs in
+  useEffect(() => {
+    if (isAuthenticated && !interestLoading) {
+      refreshInterests();
+    }
+  }, [isAuthenticated, interestLoading, refreshInterests]);
 
   useEffect(() => {
     async function fetchData() {
