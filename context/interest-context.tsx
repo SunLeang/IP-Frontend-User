@@ -5,6 +5,8 @@ import {
   useContext,
   useState,
   useEffect,
+  useCallback,
+  useRef,
   type ReactNode,
 } from "react";
 import {
@@ -44,198 +46,234 @@ const InterestContext = createContext<InterestContextType | undefined>(
 
 export function InterestProvider({ children }: { children: ReactNode }) {
   const [interestedEvents, setInterestedEvents] = useState<Event[]>([]);
-  const [isLoading, setIsLoading] = useState(true); // Start with loading true
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user, isAuthenticated } = useAuth();
 
-  // Function to fetch interested events from API
-  const fetchInterestedEvents = async () => {
-    if (!isAuthenticated) {
-      // For non-authenticated users, load from localStorage
-      const storedEvents = localStorage.getItem("interestedEvents");
-      if (storedEvents) {
-        try {
-          setInterestedEvents(JSON.parse(storedEvents));
-        } catch (error) {
-          console.error(
-            "Failed to parse interested events from localStorage:",
-            error
-          );
-        }
+  // Use refs to control fetching and prevent infinite loops
+  const hasInitialized = useRef(false);
+  const fetchingRef = useRef(false);
+  const lastAuthState = useRef<boolean | null>(null);
+
+  // Stable fetch function that doesn't change on every render
+  const fetchInterestedEvents = useCallback(
+    async (force = false) => {
+      // Prevent duplicate calls
+      if (fetchingRef.current && !force) {
+        console.log("Already fetching, skipping...");
+        return;
       }
-      setIsLoading(false);
-      return;
-    }
 
-    setIsLoading(true);
-    setError(null);
+      // Only fetch if auth state actually changed or it's forced
+      if (
+        !force &&
+        lastAuthState.current === isAuthenticated &&
+        hasInitialized.current
+      ) {
+        console.log("Auth state hasn't changed, skipping fetch");
+        return;
+      }
 
-    try {
-      console.log("Fetching interested events from API...");
-      const events = await getInterestedEvents();
-      console.log("Fetched events:", events);
+      fetchingRef.current = true;
+      setIsLoading(true);
+      setError(null);
 
-      if (events && Array.isArray(events) && events.length > 0) {
-        const transformedEvents = events.map((event) => ({
-          id: event.id,
-          title: event.name,
-          image: event.profileImage || "/assets/images/event-placeholder.png",
-          category: event.category?.name || "Uncategorized",
-          date: {
-            month: new Date(event.dateTime)
-              .toLocaleString("en-US", { month: "short" })
-              .substring(0, 3)
-              .toUpperCase(),
-            day: new Date(event.dateTime).getDate().toString(),
-          },
-          venue: event.locationDesc,
-          time: new Date(event.dateTime).toLocaleString("en-US", {
-            hour: "numeric",
-            minute: "numeric",
-            hour12: true,
-          }),
-          price: 0,
-          interested: event._count?.interestedUsers || 0,
-        }));
+      try {
+        console.log("Fetching interested events...", {
+          isAuthenticated,
+          force,
+        });
 
-        console.log("Transformed events:", transformedEvents);
-        setInterestedEvents(transformedEvents);
+        if (!isAuthenticated) {
+          // Handle guest users - load from localStorage
+          const storedEvents = localStorage.getItem("interestedEvents");
+          if (storedEvents) {
+            try {
+              const parsedEvents = JSON.parse(storedEvents);
+              setInterestedEvents(
+                Array.isArray(parsedEvents) ? parsedEvents : []
+              );
+            } catch (error) {
+              console.error("Failed to parse localStorage events:", error);
+              setInterestedEvents([]);
+              localStorage.removeItem("interestedEvents");
+            }
+          } else {
+            setInterestedEvents([]);
+          }
+        } else {
+          // Handle authenticated users - fetch from API
+          const events = await getInterestedEvents();
 
-        // Also sync to localStorage for backup
-        localStorage.setItem(
-          "interestedEvents",
-          JSON.stringify(transformedEvents)
+          if (events && Array.isArray(events)) {
+            const transformedEvents = events.map((event) => ({
+              id: event.id,
+              title: event.name,
+              image:
+                event.profileImage || "/assets/images/event-placeholder.png",
+              category: event.category?.name || "Uncategorized",
+              date: {
+                month: new Date(event.dateTime)
+                  .toLocaleString("en-US", { month: "short" })
+                  .substring(0, 3)
+                  .toUpperCase(),
+                day: new Date(event.dateTime).getDate().toString(),
+              },
+              venue: event.locationDesc,
+              time: new Date(event.dateTime).toLocaleString("en-US", {
+                hour: "numeric",
+                minute: "numeric",
+                hour12: true,
+              }),
+              price: 0,
+              interested: event._count?.interestedUsers || 0,
+            }));
+
+            setInterestedEvents(transformedEvents);
+            // Sync to localStorage as backup
+            localStorage.setItem(
+              "interestedEvents",
+              JSON.stringify(transformedEvents)
+            );
+          } else {
+            setInterestedEvents([]);
+            localStorage.removeItem("interestedEvents");
+          }
+        }
+
+        // Update tracking variables
+        lastAuthState.current = isAuthenticated;
+        hasInitialized.current = true;
+      } catch (error) {
+        console.error("Failed to fetch interested events:", error);
+        setError(
+          error instanceof Error ? error.message : "Failed to fetch events"
         );
-      } else {
-        console.log("No interested events found");
-        setInterestedEvents([]);
-        localStorage.removeItem("interestedEvents");
-      }
-    } catch (error) {
-      console.error("Failed to fetch interested events:", error);
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Failed to fetch interested events"
-      );
 
-      // Fallback to localStorage if API fails
-      const storedEvents = localStorage.getItem("interestedEvents");
-      if (storedEvents) {
-        try {
-          setInterestedEvents(JSON.parse(storedEvents));
-        } catch (parseError) {
-          console.error("Failed to parse stored events:", parseError);
+        // Fallback to localStorage on error
+        if (isAuthenticated) {
+          const storedEvents = localStorage.getItem("interestedEvents");
+          if (storedEvents) {
+            try {
+              const parsedEvents = JSON.parse(storedEvents);
+              setInterestedEvents(
+                Array.isArray(parsedEvents) ? parsedEvents : []
+              );
+            } catch (parseError) {
+              setInterestedEvents([]);
+            }
+          }
         }
+      } finally {
+        setIsLoading(false);
+        fetchingRef.current = false;
       }
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    [isAuthenticated]
+  );
 
-  // Load interested events when component mounts or authentication changes
+  // Effect to handle authentication changes
   useEffect(() => {
-    fetchInterestedEvents();
-  }, [isAuthenticated]); // Re-fetch when auth status changes
+    // Only fetch if auth state actually changed or we haven't initialized
+    if (lastAuthState.current !== isAuthenticated || !hasInitialized.current) {
+      fetchInterestedEvents();
+    }
+  }, [isAuthenticated, fetchInterestedEvents]);
 
-  const addInterest = async (event: Event) => {
-    if (!isAuthenticated) {
-      // For guest users, store in localStorage
+  const addInterest = useCallback(
+    async (event: Event) => {
+      // Optimistic update
       setInterestedEvents((prev) => {
-        if (prev.some((e) => e.id === event.id)) {
-          return prev;
-        }
+        if (prev.some((e) => e.id === event.id)) return prev;
         const newEvents = [...prev, event];
         localStorage.setItem("interestedEvents", JSON.stringify(newEvents));
         return newEvents;
       });
-      return;
-    }
 
-    // Optimistic update - add to UI immediately
-    setInterestedEvents((prev) => {
-      if (prev.some((e) => e.id === event.id)) {
-        return prev;
-      }
-      return [...prev, event];
-    });
+      if (!isAuthenticated) return;
 
-    setError(null);
-    try {
-      console.log("Adding interest for event:", event.id);
-      const result = await toggleEventInterest(event.id);
-      console.log("Add interest result:", result);
-
-      if (result.success) {
-        // Update localStorage
-        const updatedEvents = [...interestedEvents, event];
-        localStorage.setItem("interestedEvents", JSON.stringify(updatedEvents));
-      } else {
-        // Revert optimistic update on failure
+      try {
+        const result = await toggleEventInterest(event.id);
+        if (!result.success || !result.isInterested) {
+          // Rollback on failure
+          setInterestedEvents((prev) => prev.filter((e) => e.id !== event.id));
+          const storedEvents = localStorage.getItem("interestedEvents");
+          if (storedEvents) {
+            const parsedEvents = JSON.parse(storedEvents);
+            const filteredEvents = parsedEvents.filter(
+              (e: Event) => e.id !== event.id
+            );
+            localStorage.setItem(
+              "interestedEvents",
+              JSON.stringify(filteredEvents)
+            );
+          }
+        }
+      } catch (error) {
+        console.error("Failed to add interest:", error);
+        // Rollback on error
         setInterestedEvents((prev) => prev.filter((e) => e.id !== event.id));
+        setError("Failed to add interest");
       }
-    } catch (error) {
-      console.error("Failed to add interest:", error);
-      setError(
-        error instanceof Error ? error.message : "Failed to add interest"
-      );
+    },
+    [isAuthenticated]
+  );
 
-      // Revert optimistic update on error
-      setInterestedEvents((prev) => prev.filter((e) => e.id !== event.id));
-    }
-  };
+  const removeInterest = useCallback(
+    async (eventId: string) => {
+      // Store for rollback
+      const eventToRemove = interestedEvents.find((e) => e.id === eventId);
 
-  const removeInterest = async (eventId: string) => {
-    if (!isAuthenticated) {
-      // For guest users, remove from localStorage
+      // Optimistic update
       setInterestedEvents((prev) => {
         const newEvents = prev.filter((event) => event.id !== eventId);
         localStorage.setItem("interestedEvents", JSON.stringify(newEvents));
         return newEvents;
       });
-      return;
-    }
 
-    // Optimistic update - remove from UI immediately
-    const eventToRemove = interestedEvents.find((e) => e.id === eventId);
-    setInterestedEvents((prev) => prev.filter((event) => event.id !== eventId));
+      if (!isAuthenticated) return;
 
-    setError(null);
-    try {
-      console.log("Removing interest for event:", eventId);
-      const result = await toggleEventInterest(eventId);
-      console.log("Remove interest result:", result);
-
-      if (result.success) {
-        // Update localStorage
-        const updatedEvents = interestedEvents.filter((e) => e.id !== eventId);
-        localStorage.setItem("interestedEvents", JSON.stringify(updatedEvents));
-      } else {
-        // Revert optimistic update on failure
-        if (eventToRemove) {
-          setInterestedEvents((prev) => [...prev, eventToRemove]);
+      try {
+        const result = await toggleEventInterest(eventId);
+        if (!result.success || result.isInterested) {
+          // Rollback on failure
+          if (eventToRemove) {
+            setInterestedEvents((prev) => {
+              const newEvents = [...prev, eventToRemove];
+              localStorage.setItem(
+                "interestedEvents",
+                JSON.stringify(newEvents)
+              );
+              return newEvents;
+            });
+          }
         }
+      } catch (error) {
+        console.error("Failed to remove interest:", error);
+        // Rollback on error
+        if (eventToRemove) {
+          setInterestedEvents((prev) => {
+            const newEvents = [...prev, eventToRemove];
+            localStorage.setItem("interestedEvents", JSON.stringify(newEvents));
+            return newEvents;
+          });
+        }
+        setError("Failed to remove interest");
       }
-    } catch (error) {
-      console.error("Failed to remove interest:", error);
-      setError(
-        error instanceof Error ? error.message : "Failed to remove interest"
-      );
+    },
+    [isAuthenticated, interestedEvents]
+  );
 
-      // Revert optimistic update on error
-      if (eventToRemove) {
-        setInterestedEvents((prev) => [...prev, eventToRemove]);
-      }
-    }
-  };
+  const isInterested = useCallback(
+    (eventId: string) => {
+      return interestedEvents.some((event) => event.id === eventId);
+    },
+    [interestedEvents]
+  );
 
-  const isInterested = (eventId: string) => {
-    return interestedEvents.some((event) => event.id === eventId);
-  };
-
-  const refreshInterests = async () => {
-    await fetchInterestedEvents();
-  };
+  const refreshInterests = useCallback(async () => {
+    await fetchInterestedEvents(true);
+  }, [fetchInterestedEvents]);
 
   return (
     <InterestContext.Provider

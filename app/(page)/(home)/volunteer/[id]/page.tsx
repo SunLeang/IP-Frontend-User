@@ -7,6 +7,8 @@ import { Calendar, Check, Clock, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HeroSection } from "@/components/hero-section";
 import { getEventById } from "@/services/event-service";
+import { getUserVolunteerApplications } from "@/services/volunteer-service"; // Add this import
+import { useAuth } from "@/context/auth-context";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -28,9 +30,20 @@ export default function VolunteerDetailPage({
 }) {
   const { id } = React.use(params as unknown as Promise<{ id: string }>);
   const router = useRouter();
+  const { user, isAuthenticated } = useAuth(); // auth context
   const [event, setEvent] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [eventEnded, setEventEnded] = useState(false);
+  const [volunteerStatus, setVolunteerStatus] = useState<{
+    isVolunteer: boolean;
+    applicationStatus: string | null;
+    hasApplied: boolean;
+  }>({
+    isVolunteer: false,
+    applicationStatus: null,
+    hasApplied: false,
+  });
 
   useEffect(() => {
     const fetchEventDetails = async () => {
@@ -39,6 +52,11 @@ export default function VolunteerDetailPage({
         const data = await getEventById(id);
         if (data) {
           setEvent(data);
+
+          // Check if event has ended
+          const eventDate = new Date(data.dateTime);
+          const now = new Date();
+          setEventEnded(eventDate < now);
         } else {
           setError("Event not found");
         }
@@ -53,9 +71,103 @@ export default function VolunteerDetailPage({
     fetchEventDetails();
   }, [id]);
 
+  // Check user's volunteer status for this event
+  useEffect(() => {
+    const checkVolunteerStatus = async () => {
+      if (!isAuthenticated || !user) {
+        return;
+      }
+
+      try {
+        const applications = await getUserVolunteerApplications();
+        const eventApplication = applications.find(
+          (app: any) => app.eventId === id
+        );
+
+        if (eventApplication) {
+          setVolunteerStatus({
+            isVolunteer: eventApplication.status === "APPROVED",
+            applicationStatus: eventApplication.status,
+            hasApplied: true,
+          });
+        } else {
+          setVolunteerStatus({
+            isVolunteer: false,
+            applicationStatus: null,
+            hasApplied: false,
+          });
+        }
+      } catch (error) {
+        console.error("Error checking volunteer status:", error);
+      }
+    };
+
+    checkVolunteerStatus();
+  }, [id, isAuthenticated, user]);
+
   const handleApply = () => {
-    // Redirect to application form
-    router.push(`/volunteer/apply/${id}`);
+    if (!isAuthenticated) {
+      // Redirect to login with return URL
+      router.push(`/login?redirect=${encodeURIComponent(`/volunteer/${id}`)}`);
+      return;
+    }
+
+    // Only allow navigation if user hasn't applied and event hasn't ended
+    if (!volunteerStatus.hasApplied && !eventEnded) {
+      router.push(`/volunteer/apply/${id}`);
+    }
+  };
+
+  // Function to get button text and state
+  const getButtonState = () => {
+    if (!isAuthenticated) {
+      return {
+        text: "Login to Apply",
+        disabled: false,
+        className: "w-full py-6 bg-blue-500 hover:bg-blue-600",
+      };
+    }
+
+    if (eventEnded) {
+      return {
+        text: "Event Has Ended",
+        disabled: true,
+        className: "w-full py-6 bg-gray-400 cursor-not-allowed",
+      };
+    }
+
+    if (volunteerStatus.isVolunteer) {
+      return {
+        text: "You're Already a Volunteer",
+        disabled: true,
+        className: "w-full py-6 bg-green-400 cursor-not-allowed",
+      };
+    }
+
+    if (volunteerStatus.hasApplied) {
+      const statusText =
+        {
+          PENDING: "Application Submitted - Please Wait",
+          REJECTED: "Application Rejected",
+          APPROVED: "You're Already a Volunteer",
+        }[volunteerStatus.applicationStatus || "PENDING"] ||
+        "Application Submitted - Please Wait";
+
+      return {
+        text: statusText,
+        disabled: true,
+        className:
+          volunteerStatus.applicationStatus === "REJECTED"
+            ? "w-full py-6 bg-red-400 cursor-not-allowed"
+            : "w-full py-6 bg-yellow-400 cursor-not-allowed",
+      };
+    }
+
+    return {
+      text: "Apply Now",
+      disabled: false,
+      className: "w-full py-6 bg-green-500 hover:bg-green-600",
+    };
   };
 
   // Format date from dateTime string
@@ -147,6 +259,7 @@ export default function VolunteerDetailPage({
   }
 
   const formattedDate = formatDate(event.dateTime);
+  const buttonState = getButtonState();
 
   return (
     <div className="min-h-screen bg-white pb-10">
@@ -156,6 +269,46 @@ export default function VolunteerDetailPage({
       <div className="container mx-auto px-4 py-6">
         {/* Event Title */}
         <h1 className="text-2xl font-bold mb-6">{event.name}</h1>
+
+        {/* Event Status Indicator */}
+        {eventEnded && (
+          <div className="mb-6 p-4 bg-gray-100 border-l-4 border-gray-400 rounded">
+            <p className="text-gray-700 font-medium">
+              ⏰ This event has ended. Volunteer applications are no longer
+              accepted.
+            </p>
+          </div>
+        )}
+
+        {/* Volunteer Status Indicator */}
+        {isAuthenticated && volunteerStatus.hasApplied && (
+          <div
+            className={`mb-6 p-4 border-l-4 rounded ${
+              volunteerStatus.isVolunteer
+                ? "bg-green-50 border-green-400"
+                : volunteerStatus.applicationStatus === "REJECTED"
+                ? "bg-red-50 border-red-400"
+                : "bg-yellow-50 border-yellow-400"
+            }`}
+          >
+            <p
+              className={`font-medium ${
+                volunteerStatus.isVolunteer
+                  ? "text-green-700"
+                  : volunteerStatus.applicationStatus === "REJECTED"
+                  ? "text-red-700"
+                  : "text-yellow-700"
+              }`}
+            >
+              {volunteerStatus.isVolunteer &&
+                "✅ You are a volunteer for this event!"}
+              {volunteerStatus.applicationStatus === "PENDING" &&
+                "⏳ Your volunteer application is under review."}
+              {volunteerStatus.applicationStatus === "REJECTED" &&
+                "❌ Your volunteer application was not accepted."}
+            </p>
+          </div>
+        )}
 
         {/* Date and Time */}
         <div className="mb-6">
@@ -288,9 +441,10 @@ export default function VolunteerDetailPage({
         <div className="fixed bottom-0 left-0 right-0 bg-white p-4 border-t md:relative md:border-0 md:p-0 md:mt-8">
           <Button
             onClick={handleApply}
-            className="w-full py-6 bg-green-500 hover:bg-green-600"
+            disabled={buttonState.disabled}
+            className={buttonState.className}
           >
-            Apply Now
+            {buttonState.text}
           </Button>
         </div>
 

@@ -23,6 +23,23 @@ export interface VolunteerApplicationFormData {
   cvPath: string;
 }
 
+// Add interface for volunteer application
+export interface VolunteerApplication {
+  id: string;
+  eventId: string;
+  userId: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  whyVolunteer: string;
+  cvPath: string;
+  createdAt: string;
+  updatedAt: string;
+  event?: {
+    id: string;
+    name: string;
+    dateTime: string;
+  };
+}
+
 export async function getVolunteerEvents(): Promise<VolunteerEvent[]> {
   try {
     const response = await apiGet(
@@ -46,11 +63,28 @@ export async function applyForVolunteer(
   }
 }
 
-export async function getUserVolunteerApplications(): Promise<any[]> {
+// Update the getUserVolunteerApplications function
+export async function getUserVolunteerApplications(): Promise<
+  VolunteerApplication[]
+> {
   try {
-    return await apiGet("/api/volunteer/my-applications");
+    const response = await apiGet("/api/volunteer/my-applications");
+    return Array.isArray(response) ? response : response.data || [];
   } catch (error) {
     console.error("Failed to fetch user's volunteer applications:", error);
     return [];
+  }
+}
+
+// Add function to check application status for specific event
+export async function getVolunteerApplicationStatus(
+  eventId: string
+): Promise<VolunteerApplication | null> {
+  try {
+    const applications = await getUserVolunteerApplications();
+    return applications.find((app) => app.eventId === eventId) || null;
+  } catch (error) {
+    console.error("Failed to check volunteer application status:", error);
+    return null;
   }
 }

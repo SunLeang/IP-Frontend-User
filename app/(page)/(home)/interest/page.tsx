@@ -1,76 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InterestEventCard } from "@/components/interest/interest-event-card";
 import { useInterest } from "@/context/interest-context";
-import { getInterestedEvents } from "@/services/event-service";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAuth } from "@/context/auth-context";
 
 export default function InterestPage() {
-  const { removeInterest } = useInterest();
-  const { isAuthenticated } = useAuth();
+  const { interestedEvents, removeInterest, isLoading, error } = useInterest();
   const [visibleEvents, setVisibleEvents] = useState(6);
-  const [events, setEvents] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Fetch data from backend
-  useEffect(() => {
-    const fetchEvents = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        if (isAuthenticated) {
-          const data = await getInterestedEvents();
-          if (data && Array.isArray(data)) {
-            // Transform the events if needed
-            const transformedEvents = data.map((event) => ({
-              id: event.id,
-              title: event.name,
-              image: event.profileImage
-                ? event.profileImage.startsWith("/")
-                  ? event.profileImage
-                  : `/assets/images/${event.profileImage}`
-                : "/assets/images/event-placeholder.png",
-              category: event.category?.name || "Uncategorized",
-              date: {
-                month: new Date(event.dateTime)
-                  .toLocaleString("en-US", { month: "short" })
-                  .toUpperCase(),
-                day: new Date(event.dateTime).getDate().toString(),
-              },
-              venue: event.locationDesc,
-              time: new Date(event.dateTime).toLocaleString("en-US", {
-                hour: "numeric",
-                minute: "numeric",
-                hour12: true,
-              }),
-              price: 0,
-              interested: event._count?.interestedUsers || 0,
-            }));
-            setEvents(transformedEvents);
-          }
-        } else {
-          // Get from local storage for guest users
-          const storedEvents = localStorage.getItem("interestedEvents");
-          if (storedEvents) {
-            setEvents(JSON.parse(storedEvents));
-          }
-        }
-      } catch (err) {
-        console.error("Error fetching interested events:", err);
-        setError("Failed to load your interested events. Please try again.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchEvents();
-  }, [isAuthenticated]);
 
   const handleSeeMore = () => {
     setVisibleEvents((prev) => prev + 6);
@@ -79,8 +19,6 @@ export default function InterestPage() {
   const handleRemoveInterest = async (eventId: string) => {
     try {
       await removeInterest(eventId);
-      // Remove from local state as well
-      setEvents((prev) => prev.filter((event) => event.id !== eventId));
     } catch (err) {
       console.error("Failed to remove interest:", err);
     }
@@ -122,7 +60,7 @@ export default function InterestPage() {
             <p className="text-red-500 mb-4">{error}</p>
             <Button onClick={() => window.location.reload()}>Try Again</Button>
           </div>
-        ) : events.length === 0 ? (
+        ) : interestedEvents.length === 0 ? (
           <div className="text-center py-20">
             <h2 className="text-xl font-medium text-gray-600 mb-4">
               You haven&apos;t marked any events as interested yet
@@ -138,7 +76,7 @@ export default function InterestPage() {
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {events.slice(0, visibleEvents).map((event) => (
+              {interestedEvents.slice(0, visibleEvents).map((event) => (
                 <InterestEventCard
                   key={event.id}
                   {...event}
@@ -147,7 +85,7 @@ export default function InterestPage() {
               ))}
             </div>
 
-            {visibleEvents < events.length && (
+            {visibleEvents < interestedEvents.length && (
               <div className="text-center mt-8">
                 <Button
                   variant="outline"

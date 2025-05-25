@@ -9,11 +9,7 @@ import { useInterest } from "@/context/interest-context";
 // Helper function for image paths
 function getValidImagePath(src: string | undefined | null): string {
   if (!src) return "/assets/images/event-placeholder.png";
-
-  if (src.startsWith("http") || src.startsWith("/")) {
-    return src;
-  }
-
+  if (src.startsWith("http") || src.startsWith("/")) return src;
   return `/assets/images/${src}`;
 }
 
@@ -45,13 +41,15 @@ export function EventCard({
 }: EventCardProps) {
   const { addInterest, removeInterest, isInterested } = useInterest();
   const [isToggling, setIsToggling] = useState(false);
-  const saved = isInterested(id);
+
+  // Memoize the interest status check
+  const saved = React.useMemo(() => isInterested(id), [isInterested, id]);
 
   const handleInterestToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (isToggling) return; // Prevent double clicks
+    if (isToggling) return;
 
     setIsToggling(true);
     try {
@@ -92,12 +90,12 @@ export function EventCard({
             {category}
           </div>
           <button
-            className="absolute top-2 right-2 bg-white p-1 rounded-full hover:bg-gray-100"
+            className="absolute top-2 right-2 bg-white p-1 rounded-full hover:bg-gray-100 transition-colors"
             onClick={handleInterestToggle}
             disabled={isToggling}
           >
             <Star
-              className={`h-5 w-5 ${
+              className={`h-5 w-5 transition-colors ${
                 saved ? "fill-yellow-400 text-yellow-400" : "text-gray-400"
               }`}
             />
