@@ -56,13 +56,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
+  // Clear all auth data helper
+  const clearAuthData = () => {
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("user");
+    document.cookie = "accessToken=; Max-Age=0; path=/;";
+    document.cookie = "refreshToken=; Max-Age=0; path=/;";
+    document.cookie = "user=; Max-Age=0; path=/;";
+    document.cookie = "userRole=; Max-Age=0; path=/;";
+    setUser(null);
+    setIsAuthenticated(false);
+  };
+
   // Login function
   const login = async (email: string, password: string) => {
     try {
-      const response = await apiPost("/api/auth/login", { email, password });
+      // Clear any existing auth data first
+      clearAuthData();
 
-      if (!response || !response.accessToken) {
+      // Normalize email before sending
+      const normalizedEmail = email.trim().toLowerCase();
+
+      console.log("Frontend login attempt:", {
+        originalEmail: email,
+        normalizedEmail,
+        passwordLength: password.length,
+      });
+
+      const response = await apiPost("/api/auth/login", {
+        email: normalizedEmail,
+        password,
+      });
+
+      // Validate response structure more thoroughly
+      if (!response || typeof response !== "object") {
+        console.error("Invalid response structure:", response);
         throw new Error("Invalid response from server");
+      }
+
+      if (!response.user) {
+        console.error("No user data in response:", response);
+        throw new Error("Invalid response from server");
+      }
+
+      if (!response.accessToken) {
+        console.error("No access token in response:", response);
+        throw new Error("Invalid response from server");
+      }
+
+      // Ensure user has currentRole
+      if (!response.user.currentRole) {
+        response.user.currentRole = "ATTENDEE";
       }
 
       // Store tokens securely
@@ -74,17 +119,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Store user data
       localStorage.setItem("user", JSON.stringify(response.user));
 
-      // Also set cookies for middleware
-      document.cookie = `accessToken=${response.accessToken}; path=/; max-age=900`;
+      // Set cookies for middleware
+      document.cookie = `accessToken=${response.accessToken}; path=/; max-age=900; SameSite=Lax`;
       document.cookie = `user=${encodeURIComponent(
         JSON.stringify(response.user)
-      )}; path=/; max-age=900`;
-      document.cookie = `userRole=${response.user.currentRole}; path=/; max-age=900`;
+      )}; path=/; max-age=900; SameSite=Lax`;
+      document.cookie = `userRole=${response.user.currentRole}; path=/; max-age=900; SameSite=Lax`;
 
       setUser(response.user);
       setIsAuthenticated(true);
+
+      console.log("Login successful for user:", response.user.email);
     } catch (error: unknown) {
       console.error("Login error:", error);
+      clearAuthData();
       throw error;
     }
   };

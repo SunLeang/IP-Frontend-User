@@ -69,41 +69,62 @@ export async function apiGet(endpoint: string) {
 // Update  API service to not throw errors for public pages:
 
 export async function apiPost(endpoint: string, data: any) {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3100";
+  console.log("=== API POST Debug ===");
+  console.log("Endpoint:", endpoint);
+  console.log("Data:", {
+    ...data,
+    password: data.password ? "***" : undefined,
+  });
 
   try {
-    const response = await fetch(`${apiUrl}${endpoint}`, {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      ...getAuthHeader(),
+    };
+
+    let response = await fetch(`${API_URL}${endpoint}`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("accessToken") || ""}`,
-      },
-      credentials: "include",
+      headers,
       body: JSON.stringify(data),
     });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({
-        message: `HTTP ${response.status}: ${response.statusText}`,
-      }));
+    console.log("Response status:", response.status);
+    console.log(
+      "Response headers:",
+      Object.fromEntries(response.headers.entries())
+    );
 
-      // Don't throw unauthorized errors for certain endpoints
-      if (response.status === 401) {
-        console.warn("Unauthorized request:", endpoint);
-        // For role switching, this is a critical error
-        if (endpoint.includes("switch-role")) {
-          throw new Error("Unauthorized - Please log in again");
-        }
-        // For other endpoints, return null instead of throwing
-        return null;
+    // Handle 401 only for non-auth endpoints
+    if (response.status === 401 && !endpoint.includes("/auth/")) {
+      const newAccessToken = await refreshAccessToken();
+      if (newAccessToken) {
+        const retryHeaders: Record<string, string> = {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${newAccessToken}`,
+        };
+        response = await fetch(`${API_URL}${endpoint}`, {
+          method: "POST",
+          headers: retryHeaders,
+          body: JSON.stringify(data),
+        });
       }
-
-      throw new Error(error.message || `API error: ${response.status}`);
     }
 
-    return response.json();
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error(`API Error (${response.status}):`, errorData);
+      throw new Error(errorData.message || `Error: ${response.statusText}`);
+    }
+
+    const responseData = await response.json();
+    console.log("Response data:", {
+      ...responseData,
+      accessToken: responseData.accessToken ? "***" : undefined,
+    });
+
+    return responseData;
   } catch (error) {
-    console.error("API request failed:", error);
+    console.error(`Error in apiPost(${endpoint}):`, error);
     throw error;
   }
 }
