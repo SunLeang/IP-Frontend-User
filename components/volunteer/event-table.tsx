@@ -1,17 +1,30 @@
-import { MoreVertical } from "lucide-react"
+import { MoreVertical } from "lucide-react";
 
 interface EventTableProps {
   events: Array<{
-    id: number
-    name: string
-    attendeeCount: number
-    attendeeCapacity: number
-    volunteerCount: string
-    progress: number
-  }>
+    id: number;
+    name: string;
+    attendeeCount: number;
+    attendeeCapacity: number;
+    volunteerCount: string;
+    progress: number;
+  }>;
 }
 
 export function EventTable({ events }: EventTableProps) {
+  if (!events || events.length === 0) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+        <div className="flex justify-between items-center p-4 border-b">
+          <h2 className="font-medium">Statistic Event Details</h2>
+        </div>
+        <div className="p-4 text-center text-gray-500">
+          No volunteer events found
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden">
       <div className="flex justify-between items-center p-4 border-b">
@@ -46,30 +59,24 @@ export function EventTable({ events }: EventTableProps) {
           </thead>
           <tbody>
             {events.map((event) => (
-              <tr key={event.id} className="border-t">
-                <td className="px-4 py-3 text-sm">{event.id}</td>
-                <td className="px-4 py-3 text-sm font-medium">{event.name}</td>
-                <td className="px-4 py-3">
-                  <div className="flex flex-col">
-                    <div className="flex justify-between mb-1">
-                      <span className="text-xs font-medium">{event.progress}%</span>
-                      <span className="text-xs text-gray-500">
-                        {event.attendeeCount}/{event.attendeeCapacity}
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-1.5">
+              <tr key={event.id} className="border-b">
+                <td className="p-4">{event.name}</td>
+                <td className="p-4">
+                  {event.attendeeCount}/{event.attendeeCapacity}
+                </td>
+                <td className="p-4">{event.volunteerCount}</td>
+                <td className="p-4">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-gray-200 rounded-full h-2">
                       <div
-                        className={`h-1.5 rounded-full ${event.progress === 100 ? "bg-green-500" : "bg-yellow-500"}`}
+                        className="bg-blue-500 h-2 rounded-full"
                         style={{ width: `${event.progress}%` }}
                       ></div>
                     </div>
+                    <span className="text-sm text-gray-600">
+                      {event.progress}%
+                    </span>
                   </div>
-                </td>
-                <td className="px-4 py-3 text-sm">{event.volunteerCount}</td>
-                <td className="px-4 py-3">
-                  <button>
-                    <MoreVertical size={16} className="text-gray-500" />
-                  </button>
                 </td>
               </tr>
             ))}
@@ -77,5 +84,5 @@ export function EventTable({ events }: EventTableProps) {
         </table>
       </div>
     </div>
-  )
+  );
 }
