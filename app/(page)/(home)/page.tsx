@@ -6,6 +6,7 @@ import { CategorySection } from "@/components/home/category-section";
 import { EventsSection } from "@/components/home/events-section";
 import { getCategories, type Category } from "@/services/category-service";
 import { getEvents, type Event } from "@/services/event-service";
+import { getValidImageSrc } from "@/lib/image-utils";
 
 export default function Home() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -45,7 +46,7 @@ export default function Home() {
     {
       id: "1",
       name: "Event New Year Celebration",
-      profileImage: "/assets/images/new-year.png",
+      profileImage: "/assets/constants/billboard.png", // Use fallback image
       dateTime: new Date().toISOString(),
       locationDesc: "Venue",
       status: "PUBLISHED" as const,
@@ -65,30 +66,28 @@ export default function Home() {
   const displayEvents =
     publishedEvents.length > 0 ? publishedEvents : fallbackEvents;
 
-  const transformedEvents = displayEvents.map((event) => ({
-    id: event.id,
-    title: event.name,
-    img: event.profileImage
-      ? event.profileImage.startsWith("http")
-        ? event.profileImage
-        : `/assets/images/${event.profileImage.replace(/^\//, "")}`
-      : "/assets/images/event-placeholder.png",
-    date: {
-      month: new Date(event.dateTime)
-        .toLocaleString("en-US", { month: "short" })
-        .toUpperCase(),
-      day: new Date(event.dateTime).getDate().toString(),
-    },
-    venue: event.locationDesc,
-    time: new Date(event.dateTime).toLocaleString("en-US", {
-      hour: "numeric",
-      minute: "numeric",
-      hour12: true,
-    }),
-    price: 0,
-    interested: event._count?.interestedUsers || 0,
-    category: event.category?.name || "Uncategorized",
-  }));
+  const transformedEvents = displayEvents.map((event) => {
+    return {
+      id: event.id,
+      title: event.name,
+      img: getValidImageSrc(event.profileImage), // This will handle external URLs safely
+      date: {
+        month: new Date(event.dateTime)
+          .toLocaleString("en-US", { month: "short" })
+          .toUpperCase(),
+        day: new Date(event.dateTime).getDate().toString(),
+      },
+      venue: event.locationDesc,
+      time: new Date(event.dateTime).toLocaleString("en-US", {
+        hour: "numeric",
+        minute: "numeric",
+        hour12: true,
+      }),
+      price: 0,
+      interested: event._count?.interestedUsers || 0,
+      category: event.category?.name || "Uncategorized",
+    };
+  });
 
   const upcomingEvents = transformedEvents.filter(
     (event) => new Date(event.date.month + " " + event.date.day) > new Date()
@@ -111,7 +110,7 @@ export default function Home() {
         categories={displayCategories.map((cat) => ({
           id: cat.id,
           title: cat.name,
-          img: cat.image || `/assets/images/category-placeholder.png`,
+          img: cat.image || `/assets/constants/billboard.png`,
         }))}
         isLoading={isLoading}
       />

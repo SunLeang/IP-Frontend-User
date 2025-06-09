@@ -10,7 +10,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Loader2, User, Users } from "lucide-react";
 import { CurrentRole } from "@/types/user";
-import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
 import { apiPost } from "@/services/api";
 

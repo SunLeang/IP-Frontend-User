@@ -9,11 +9,13 @@ export interface VolunteerEvent {
   profileImage?: string;
   coverImage?: string;
   acceptingVolunteers: boolean;
+  status: string;
   category?: {
     name: string;
   };
   _count?: {
     volunteers?: number;
+    attendingUsers?: number;
   };
 }
 
@@ -86,5 +88,51 @@ export async function getVolunteerApplicationStatus(
   } catch (error) {
     console.error("Failed to check volunteer application status:", error);
     return null;
+  }
+}
+
+// Add this new function to get events where user is volunteering
+export async function getMyVolunteerEvents(): Promise<VolunteerEvent[]> {
+  try {
+    console.log("Fetching my volunteer events...");
+
+    // First get the user's applications to find which events they're volunteering for
+    const applications = await getUserVolunteerApplications();
+    const approvedApplications = applications.filter(
+      (app) => app.status === "APPROVED"
+    );
+
+    if (approvedApplications.length === 0) {
+      return [];
+    }
+
+    // Get event details for approved applications
+    const eventPromises = approvedApplications.map(async (app) => {
+      try {
+        const event = await apiGet(`/api/events/${app.eventId}`);
+        return event;
+      } catch (error) {
+        console.error(`Failed to fetch event ${app.eventId}:`, error);
+        return null;
+      }
+    });
+
+    const events = await Promise.all(eventPromises);
+    return events.filter((event) => event !== null);
+  } catch (error) {
+    console.error("Failed to fetch my volunteer events:", error);
+    return [];
+  }
+}
+
+// Alternative approach using backend endpoint if available
+export async function getVolunteerEventsDirect(): Promise<VolunteerEvent[]> {
+  try {
+    // This would require a new backend endpoint
+    const response = await apiGet("/api/volunteer/my-events");
+    return response.data || response;
+  } catch (error) {
+    console.error("Failed to fetch volunteer events directly:", error);
+    return [];
   }
 }

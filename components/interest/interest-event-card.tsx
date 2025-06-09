@@ -1,24 +1,37 @@
-"use client"
+"use client";
 
-import Image from "next/image"
-import Link from "next/link"
-import { Star } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import Image from "next/image";
+import Link from "next/link";
+import { Star } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+// Helper function to ensure image paths are properly formatted
+function getValidImageSrc(src: string | undefined | null): string {
+  if (!src) return "/assets/images/event-placeholder.png";
+
+  // If it's already an absolute URL or starts with a slash, return as is
+  if (src.startsWith("http") || src.startsWith("/")) {
+    return src;
+  }
+
+  // Otherwise, prepend the assets path
+  return `/assets/images/${src}`;
+}
 
 interface InterestEventCardProps {
-  id: string
-  title: string
-  image: string
-  category: string
+  id: string;
+  title: string;
+  image: string;
+  category: string;
   date: {
-    month: string
-    day: string
-  }
-  venue: string
-  time: string
-  price: number
-  interested: number
-  onRemoveInterest: (id: string) => void
+    month: string;
+    day: string;
+  };
+  venue: string;
+  time: string;
+  price: number;
+  interested: number;
+  onRemoveInterest: (id: string) => void;
 }
 
 export function InterestEventCard({
@@ -37,7 +50,7 @@ export function InterestEventCard({
     <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
       <div className="relative">
         <Image
-          src={image || "/placeholder.svg?height=200&width=400"}
+          src={getValidImageSrc(image)}
           alt={title}
           width={400}
           height={200}
@@ -45,7 +58,9 @@ export function InterestEventCard({
         />
         <div
           className={`absolute top-4 left-4 px-3 py-1 rounded-md text-xs font-medium text-white ${
-            category === "Educational & Business" ? "bg-blue-500" : "bg-orange-500"
+            category === "Educational & Business"
+              ? "bg-blue-500"
+              : "bg-orange-500"
           }`}
         >
           {category}
@@ -63,13 +78,17 @@ export function InterestEventCard({
       <div className="p-4">
         <div className="flex gap-4">
           <div className="text-center">
-            <div className="text-xs font-semibold text-gray-500">{date.month}</div>
+            <div className="text-xs font-semibold text-gray-500">
+              {date.month}
+            </div>
             <div className="text-2xl font-bold">{date.day}</div>
           </div>
 
           <div className="flex-1">
             <Link href={`/events/${id}`}>
-              <h3 className="font-medium text-lg hover:text-blue-600 transition-colors line-clamp-2">{title}</h3>
+              <h3 className="font-medium text-lg hover:text-blue-600 transition-colors line-clamp-2">
+                {title}
+              </h3>
             </Link>
             <p className="text-sm text-gray-500 mt-1">{venue}</p>
             <p className="text-xs text-gray-400 mt-0.5">{time}</p>
@@ -79,11 +98,13 @@ export function InterestEventCard({
                 <Star className="h-4 w-4 mr-1 fill-yellow-400 text-yellow-400" />
                 <span>{interested} interested</span>
               </div>
-              {price > 0 && <div className="text-sm font-medium">INR {price}</div>}
+              {price > 0 && (
+                <div className="text-sm font-medium">INR {price}</div>
+              )}
             </div>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

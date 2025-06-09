@@ -21,18 +21,7 @@ import { getEventById, joinEvent, leaveEvent } from "@/services/event-service";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/context/auth-context";
 import { use } from "react";
-
-// Helper function to ensure image paths are properly formatted
-function getImagePath(src: string | undefined | null): string {
-  if (!src) return "/assets/images/event-placeholder.png";
-
-  // If it's already an absolute URL or starts with a slash, return as is
-  if (src.startsWith("http") || src.startsWith("/")) {
-    return src;
-  }
-
-  return `/assets/images/${src}`;
-}
+import { getValidImageSrc } from "@/lib/image-utils"; // Import the utility
 
 interface EventData {
   id: string;
@@ -111,7 +100,7 @@ export default function EventDetailPage({ params }: PageProps) {
       addInterest({
         id,
         title: event.name,
-        image: getImagePath(event.profileImage),
+        image: getValidImageSrc(event.profileImage), // This will now return fallback for external URLs
         category: event.category?.name || "Uncategorized",
         date: {
           month: new Date(event.dateTime)
@@ -229,11 +218,11 @@ export default function EventDetailPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-white pb-10">
-      {/* Banner Image */}
+      {/* Banner Image - Now safely handled */}
       <div className="w-full h-[200px] md:h-[300px] relative">
         <Image
-          src={getImagePath(event.coverImage || event.profileImage)}
-          alt={event.name}
+          src={getValidImageSrc(event?.coverImage || event?.profileImage)}
+          alt={event?.name || "Event"}
           fill
           className="object-cover"
           priority
@@ -303,10 +292,10 @@ export default function EventDetailPage({ params }: PageProps) {
                   <p>{event.locationDesc}</p>
                 </div>
               </div>
-              {event.locationImage && (
+              {event?.locationImage && (
                 <div className="rounded-lg overflow-hidden border border-gray-200 ml-8">
                   <Image
-                    src={getImagePath(event.locationImage)}
+                    src={getValidImageSrc(event.locationImage)}
                     alt="Event location map"
                     width={600}
                     height={300}

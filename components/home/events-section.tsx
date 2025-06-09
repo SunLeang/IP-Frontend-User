@@ -67,13 +67,7 @@ export function EventsSection({
                 key={event.id}
                 id={event.id}
                 title={event.title}
-                image={
-                  event.img.startsWith("http")
-                    ? event.img
-                    : event.img.startsWith("/")
-                    ? event.img
-                    : `/assets/images/${event.img}`
-                }
+                image={event.img} // Let EventCard handle the image processing
                 category={event.category}
                 date={event.date}
                 venue={event.venue}

@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Star } from "lucide-react";
 import { useInterest } from "@/context/interest-context";
+import { getValidImageSrc } from "@/lib/image-utils"; // Import utility
 
 // Helper function for image paths
 function getValidImagePath(src: string | undefined | null): string {
@@ -41,6 +42,7 @@ export function EventCard({
 }: EventCardProps) {
   const { addInterest, removeInterest, isInterested } = useInterest();
   const [isToggling, setIsToggling] = useState(false);
+  const [imageSrc, setImageSrc] = useState(getValidImageSrc(image));
 
   // Memoize the interest status check
   const saved = React.useMemo(() => isInterested(id), [isInterested, id]);
@@ -80,11 +82,14 @@ export function EventCard({
       <Link href={`/events/${id}`} className="block">
         <div className="relative">
           <Image
-            src={getValidImagePath(image)}
+            src={imageSrc}
             alt={title}
             width={400}
             height={200}
             className="w-full h-48 object-cover"
+            onError={() => {
+              setImageSrc("/assets/constants/billboard.png");
+            }}
           />
           <div className="absolute top-4 left-4 px-3 py-1 rounded-md text-xs font-medium text-white bg-orange-500">
             {category}

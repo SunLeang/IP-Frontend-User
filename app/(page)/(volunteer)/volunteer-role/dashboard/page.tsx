@@ -11,6 +11,7 @@ import {
   getVolunteerDashboardStats,
   DashboardStats,
 } from "@/services/volunteer-dashboard-service";
+import { getMyVolunteerEvents } from "@/services/volunteer-service";
 
 export default function VolunteerRoleDashboardPage() {
   // Emergency redirect check
@@ -38,8 +39,15 @@ export default function VolunteerRoleDashboardPage() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const data = await getVolunteerDashboardStats();
-        setDashboardData(data);
+        const [dashboardStats, volunteerEvents] = await Promise.all([
+          getVolunteerDashboardStats(),
+          getMyVolunteerEvents(),
+        ]);
+
+        setDashboardData(dashboardStats);
+
+        // You can also update any event banner or recent events display
+        console.log("Volunteer events:", volunteerEvents);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
       } finally {
