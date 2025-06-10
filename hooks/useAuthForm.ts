@@ -1,7 +1,5 @@
-// hooks/useAuthForm.ts
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import type { RegisterData } from "@/context/auth-context";
 
 export function useAuthForm<T extends { email: string; password: string }>(
   initialData: T,
