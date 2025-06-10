@@ -1,131 +1,79 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import {
-  ArrowLeft,
-  Calendar,
-  Clock,
-  MapPin,
-  Share2,
-  Star,
-  UserPlus,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useInterest } from "@/context/interest-context";
+import { useState } from "react";
+import { use } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { CancelConfirmationModal } from "@/components/events/cancel-confirmation-modal";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/context/auth-context";
+import { useInterest } from "@/context/interest-context";
+import { EventPageProps } from "@/types/event";
+import { useEventDetail } from "@/hooks/useEventDetail";
+import { transformEventToCardData } from "@/utils/event-utils";
+import { EventHeader } from "@/components/events/event-header";
+import { EventInfo } from "@/components/events/event-info";
+import { EventActions } from "@/components/events/event-actions";
 import { EventRating } from "@/components/events/event-rating";
 import { CommentSection } from "@/components/events/comment-section";
-import { getEventById, joinEvent, leaveEvent } from "@/services/event-service";
+import { CancelConfirmationModal } from "@/components/events/cancel-confirmation-modal";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAuth } from "@/context/auth-context";
-import { use } from "react";
-import { getValidImageSrc } from "@/lib/image-utils"; // Import the utility
 
-interface EventData {
-  id: string;
-  name: string;
-  dateTime: string;
-  profileImage?: string | null;
-  coverImage?: string | null;
-  description: string;
-  locationDesc: string;
-  locationImage?: string | null;
-  category?: { name: string };
-  organizer?: { fullName: string };
-  acceptingVolunteers?: boolean;
-  _count?: {
-    interestedUsers?: number;
-    attendingUsers?: number;
-    volunteers?: number;
-  };
-}
-
-// Update this interface
-interface PageProps {
-  params: Promise<{ id: string }>;
-}
-
-export default function EventDetailPage({ params }: PageProps) {
+/**
+ * Event Detail Page Component
+ * Displays detailed information about a single event
+ * 
+ * Features:
+ * - Event details display
+ * - Join/leave functionality
+ * - Interest management
+ * - Rating and comments (for ended events)
+ * - Volunteer application link
+ */
+export default function EventDetailPage({ params }: EventPageProps) {
   const resolvedParams = use(params);
   const { id } = resolvedParams;
 
-  const { isInterested, addInterest, removeInterest } = useInterest();
   const { user } = useAuth();
-  const [event, setEvent] = useState<EventData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isJoined, setIsJoined] = useState(false);
+  const { isInterested, addInterest, removeInterest } = useInterest();
+  
+  // Use custom hook for event data and actions
+  const {
+    event,
+    isLoading,
+    error,
+    isJoined,
+    eventEnded,
+    handleJoinEvent,
+    handleLeaveEvent,
+    refetch,
+  } = useEventDetail(id);
+
+  // Local state for UI interactions
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showRating, setShowRating] = useState(false);
-  const [eventEnded, setEventEnded] = useState(false);
-  const [comments] = useState<
-    Array<{
-      id: string;
-      user: { name: string; image: string; time: string };
-      rating: number;
-      text: string;
-    }>
-  >([]);
+  const [comments] = useState<any[]>([]); // Mock comments data
+
   const saved = isInterested(id);
 
-  useEffect(() => {
-    async function fetchEvent() {
-      setIsLoading(true);
-      try {
-        const eventData = await getEventById(id);
-        if (eventData) {
-          setEvent(eventData);
-
-          // Check if event has ended
-          const eventDate = new Date(eventData.dateTime);
-          setEventEnded(eventDate < new Date());
-        }
-      } catch (error) {
-        console.error("Error fetching event:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchEvent();
-  }, [id]);
-
+  /**
+   * Handles interest toggle (add/remove from favorites)
+   */
   const handleInterestToggle = () => {
     if (!event) return;
 
     if (saved) {
       removeInterest(id);
     } else {
-      addInterest({
-        id,
-        title: event.name,
-        image: getValidImageSrc(event.profileImage), // This will now return fallback for external URLs
-        category: event.category?.name || "Uncategorized",
-        date: {
-          month: new Date(event.dateTime)
-            .toLocaleString("en-US", { month: "short" })
-            .substring(0, 3)
-            .toUpperCase(),
-          day: new Date(event.dateTime).getDate().toString(),
-        },
-        venue: event.locationDesc,
-        time: new Date(event.dateTime).toLocaleString("en-US", {
-          hour: "numeric",
-          minute: "numeric",
-          hour12: true,
-        }),
-        price: 0,
-        interested: event._count?.interestedUsers || 0,
-      });
+      addInterest(transformEventToCardData(event));
     }
   };
 
+  /**
+   * Handles join/cancel button click
+   */
   const handleJoinClick = async () => {
     if (!user) {
-      // Redirect to login
-      window.location.href =
-        "/login?redirect=" + encodeURIComponent(`/events/${id}`);
+      // Redirect to login with return URL
+      window.location.href = `/login?redirect=${encodeURIComponent(`/events/${id}`)}`;
       return;
     }
 
@@ -133,211 +81,73 @@ export default function EventDetailPage({ params }: PageProps) {
       setShowCancelModal(true);
     } else {
       try {
-        const result = await joinEvent(id);
-        if (result.success) {
-          setIsJoined(true);
-        }
+        await handleJoinEvent();
       } catch (error) {
         console.error("Error joining event:", error);
+        // You could show a toast notification here
       }
     }
   };
 
+  /**
+   * Handles cancel confirmation
+   */
   const handleCancelConfirm = async () => {
     try {
-      const result = await leaveEvent(id);
-      if (result.success) {
-        setIsJoined(false);
-      }
+      await handleLeaveEvent();
     } catch (error) {
       console.error("Error leaving event:", error);
+      // Add notification here later
     }
     setShowCancelModal(false);
   };
 
+  /**
+   * Handles rating submission
+   */
   const handleRatingSubmit = (rating: number, feedback: string) => {
     console.log("Rating submitted:", rating, feedback);
     setShowRating(false);
-    // Here you would normally submit the rating to your backend
+    // Comment rating later
   };
 
+  // Loading state
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-white pb-10">
-        <div className="w-full h-[200px] md:h-[300px] relative">
-          <Skeleton className="w-full h-full" />
-        </div>
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center">
-              <Skeleton className="h-6 w-6 mr-3" />
-              <Skeleton className="h-8 w-64" />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="md:col-span-2">
-              <Skeleton className="h-6 w-48 mb-3" />
-              <Skeleton className="h-4 w-full mb-2" />
-              <Skeleton className="h-4 w-full mb-6" />
-
-              <Skeleton className="h-6 w-48 mb-3" />
-              <Skeleton className="h-4 w-full mb-2" />
-              <Skeleton className="h-4 w-full mb-6" />
-
-              <Skeleton className="h-6 w-48 mb-3" />
-              <Skeleton className="h-4 w-full mb-2" />
-              <Skeleton className="h-4 w-full mb-6" />
-            </div>
-            <div className="md:col-span-1">
-              <Skeleton className="h-12 w-full mb-6" />
-              <Skeleton className="h-6 w-48 mb-3" />
-              <Skeleton className="h-4 w-full" />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <EventDetailLoading />;
   }
 
-  if (!event) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Event not found</h1>
-          <p className="mb-6">
-            The event you&apos;re looking for doesn&apos;t exist or has been
-            removed.
-          </p>
-          <Link href="/events">
-            <Button>Back to Events</Button>
-          </Link>
-        </div>
-      </div>
-    );
+  // Error state
+  if (error || !event) {
+    return <EventDetailError error={error} onRetry={refetch} />;
   }
 
   return (
     <div className="min-h-screen bg-white pb-10">
-      {/* Banner Image - Now safely handled */}
-      <div className="w-full h-[200px] md:h-[300px] relative">
-        <Image
-          src={getValidImageSrc(event?.coverImage || event?.profileImage)}
-          alt={event?.name || "Event"}
-          fill
-          className="object-cover"
-          priority
-        />
-      </div>
+      {/* Event Header */}
+      <EventHeader
+        event={event}
+        isInterested={saved}
+        onInterestToggle={handleInterestToggle}
+      />
 
-      <div className="container mx-auto px-4 py-6">
-        {/* Back Button and Title */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center">
-            <Link href="/events" className="mr-3">
-              <ArrowLeft className="h-6 w-6" />
-            </Link>
-            <h1 className="text-2xl font-bold">{event.name}</h1>
-          </div>
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={handleInterestToggle}
-              aria-label="Add to favorites"
-            >
-              <Star
-                className={`h-7 w-7 ${
-                  saved ? "fill-blue-900 text-blue-900" : "text-blue-900"
-                }`}
-              />
-            </button>
-            <button aria-label="Share event">
-              <Share2 className="h-7 w-7 text-blue-900" />
-            </button>
-          </div>
+      <div className="container mx-auto px-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Event Information */}
+          <EventInfo event={event} />
+
+          {/* Event Actions Sidebar */}
+          <EventActions
+            event={event}
+            eventEnded={eventEnded}
+            isJoined={isJoined}
+            onJoinClick={handleJoinClick}
+          />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="md:col-span-2">
-            {/* Date and Time */}
-            <div className="mb-6">
-              <h2 className="text-xl font-bold mb-3">Date and Time</h2>
-              <div className="flex items-start mb-2">
-                <Calendar className="h-5 w-5 mr-3 mt-0.5 text-gray-500" />
-                <span>
-                  {new Date(event.dateTime).toLocaleDateString("en-US", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </span>
-              </div>
-              <div className="flex items-start mb-2">
-                <Clock className="h-5 w-5 mr-3 mt-0.5 text-gray-500" />
-                <span>
-                  {new Date(event.dateTime).toLocaleTimeString("en-US", {
-                    hour: "numeric",
-                    minute: "numeric",
-                    hour12: true,
-                  })}
-                </span>
-              </div>
-            </div>
-
-            {/* Location */}
-            <div className="mb-6">
-              <h2 className="text-xl font-bold mb-3">Location</h2>
-              <div className="flex items-start mb-3">
-                <MapPin className="h-5 w-5 mr-3 mt-0.5 text-gray-500" />
-                <div>
-                  <p>{event.locationDesc}</p>
-                </div>
-              </div>
-              {event?.locationImage && (
-                <div className="rounded-lg overflow-hidden border border-gray-200 ml-8">
-                  <Image
-                    src={getValidImageSrc(event.locationImage)}
-                    alt="Event location map"
-                    width={600}
-                    height={300}
-                    className="w-full h-auto"
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Hosted by */}
-            <div className="mb-6">
-              <h2 className="text-xl font-bold mb-3">Hosted by</h2>
-              <div className="flex items-center">
-                <div className="flex items-center">
-                  <div className="w-10 h-10 mr-3">
-                    <Image
-                      src="/assets/images/logo.png"
-                      alt="Eventura"
-                      width={40}
-                      height={40}
-                      className="rounded-sm"
-                    />
-                  </div>
-                  <div>
-                    <p className="font-medium">
-                      {event.organizer?.fullName || "Event Organizer"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Event Description */}
-            <div className="mb-6">
-              <h2 className="text-xl font-bold mb-3">Event Description</h2>
-              <div className="whitespace-pre-line text-gray-700">
-                {event.description}
-              </div>
-            </div>
-
-            {/* Rating Section - Only show if event has ended */}
-            {eventEnded && !showRating && (
+        {/* Rating Section - Only show if event has ended */}
+        {eventEnded && (
+          <div className="mt-8">
+            {!showRating && (
               <Button
                 onClick={() => setShowRating(true)}
                 className="mb-6 bg-orange-500 hover:bg-orange-600"
@@ -346,78 +156,20 @@ export default function EventDetailPage({ params }: PageProps) {
               </Button>
             )}
 
-            {eventEnded && showRating && (
+            {showRating && (
               <EventRating
                 onClose={() => setShowRating(false)}
                 onSubmit={handleRatingSubmit}
               />
             )}
 
-            {/* Comments Section - Only show if event has ended */}
-            {eventEnded && (
-              <CommentSection
-                comments={comments}
-                totalComments={comments.length}
-              />
-            )}
+            {/* Comments Section */}
+            <CommentSection
+              comments={comments}
+              totalComments={comments.length}
+            />
           </div>
-
-          <div className="md:col-span-1">
-            {/* Join/Cancel Button or Event Ended */}
-            <div className="mb-6">
-              {eventEnded ? (
-                <Button
-                  disabled
-                  className="w-full py-6 bg-orange-500 hover:bg-orange-600 flex items-center justify-center gap-2"
-                >
-                  Event ended
-                </Button>
-              ) : isJoined ? (
-                <Button
-                  onClick={handleJoinClick}
-                  className="w-full py-6 bg-white text-black border border-gray-300 hover:bg-gray-100"
-                >
-                  Cancel
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleJoinClick}
-                  className="w-full py-6 bg-green-500 hover:bg-green-600 flex items-center justify-center gap-2"
-                >
-                  <UserPlus className="h-6 w-6" />
-                  Join event
-                </Button>
-              )}
-            </div>
-
-            {/* Ticket Information */}
-            <div className="mb-6">
-              <h2 className="text-xl font-bold mb-3">Ticket Information</h2>
-              <p>This event is free to join.</p>
-            </div>
-
-            {/* Category Information */}
-            <div className="mb-6">
-              <h2 className="text-xl font-bold mb-3">Category</h2>
-              <p>{event.category?.name || "Uncategorized"}</p>
-            </div>
-
-            {/* Volunteer Information - if accepting volunteers */}
-            {event.acceptingVolunteers && (
-              <div className="mb-6">
-                <h2 className="text-xl font-bold mb-3">
-                  Volunteer Opportunities
-                </h2>
-                <p className="mb-3">This event is looking for volunteers!</p>
-                <Link href={`/volunteer/${event.id}`}>
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700">
-                    Apply as Volunteer
-                  </Button>
-                </Link>
-              </div>
-            )}
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Cancel Confirmation Modal */}
@@ -426,6 +178,81 @@ export default function EventDetailPage({ params }: PageProps) {
         onClose={() => setShowCancelModal(false)}
         onConfirm={handleCancelConfirm}
       />
+    </div>
+  );
+}
+
+/**
+ * Loading component for event detail page
+ */
+function EventDetailLoading() {
+  return (
+    <div className="min-h-screen bg-white pb-10">
+      <div className="w-full h-[200px] md:h-[300px] relative">
+        <Skeleton className="w-full h-full" />
+      </div>
+      <div className="container mx-auto px-4 py-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center">
+            <Skeleton className="h-6 w-6 mr-3" />
+            <Skeleton className="h-8 w-64" />
+          </div>
+          <div className="flex items-center space-x-4">
+            <Skeleton className="h-7 w-7" />
+            <Skeleton className="h-7 w-7" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="md:col-span-2">
+            <Skeleton className="h-6 w-48 mb-3" />
+            <Skeleton className="h-4 w-full mb-2" />
+            <Skeleton className="h-4 w-full mb-6" />
+            <Skeleton className="h-6 w-48 mb-3" />
+            <Skeleton className="h-4 w-full mb-2" />
+            <Skeleton className="h-4 w-full mb-6" />
+          </div>
+          <div className="md:col-span-1">
+            <Skeleton className="h-12 w-full mb-6" />
+            <Skeleton className="h-6 w-48 mb-3" />
+            <Skeleton className="h-4 w-full" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Error component for event detail page
+ */
+function EventDetailError({ error, onRetry }: { error: string | null; onRetry: () => void }) {
+  return (
+    <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="text-center max-w-md mx-auto px-4">
+        <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-red-100 flex items-center justify-center">
+          <svg className="w-12 h-12 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+        </div>
+        <h1 className="text-2xl font-bold mb-4">
+          {error === "Event not found" ? "Event not found" : "Something went wrong"}
+        </h1>
+        <p className="mb-6 text-gray-600">
+          {error === "Event not found" 
+            ? "The event you're looking for doesn't exist or has been removed."
+            : error || "Failed to load event details. Please try again."
+          }
+        </p>
+        <div className="flex gap-4 justify-center">
+          <Button onClick={onRetry} className="bg-blue-600 hover:bg-blue-700">
+            Try Again
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="/events">Back to Events</Link>
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

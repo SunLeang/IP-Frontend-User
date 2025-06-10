@@ -1,40 +1,61 @@
 import { apiGet, apiPost, apiDelete } from "./api";
-import { Event, EventsFilterParams } from "@/types/event";
-import { createEventQueryString } from "@/utils/event-utils";
 
-/**
- * Event Service
- * Handles all event-related API operations
- */
+export enum EventStatus {
+  DRAFT = "DRAFT",
+  PUBLISHED = "PUBLISHED",
+  CANCELLED = "CANCELLED",
+  COMPLETED = "COMPLETED",
+}
 
-/**
- * Fetches events with optional filtering
- * @param params - Optional filter parameters
- * @returns Promise resolving to array of events
- */
-export async function getEvents(params?: EventsFilterParams): Promise<Event[]> {
+export interface Event {
+  id: string;
+  name: string;
+  description: string;
+  profileImage?: string;
+  coverImage?: string;
+  dateTime: string;
+  locationDesc: string;
+  locationImage?: string;
+  status: EventStatus;
+  acceptingVolunteers: boolean;
+  categoryId: string;
+  organizerId: string;
+  createdAt: string;
+  updatedAt: string;
+  category?: {
+    id: string;
+    name: string;
+    image?: string;
+  };
+  organizer?: {
+    id: string;
+    fullName: string;
+  };
+  _count?: {
+    interestedUsers?: number;
+    attendingUsers?: number;
+    volunteers?: number;
+  };
+}
+
+export async function getEvents(
+  params?: Record<string, string>
+): Promise<Event[]> {
   try {
-    console.log("Fetching events with params:", params);
-    
-    const queryString = params ? createEventQueryString(params as Record<string, string>) : "";
+    const queryString = params
+      ? `?${new URLSearchParams(params).toString()}`
+      : "";
     const response = await apiGet(`/api/events${queryString}`);
-    
-    // Handle different response structures
-    return response.data || response || [];
+    // Check if the response has a data property (pagination structure)
+    return response.data || response;
   } catch (error) {
     console.error("Failed to fetch events:", error);
     return [];
   }
 }
 
-/**
- * Fetches a single event by ID
- * @param id - Event ID
- * @returns Promise resolving to event data or null
- */
 export async function getEventById(id: string): Promise<Event | null> {
   try {
-    console.log(`Fetching event with ID: ${id}`);
     return await apiGet(`/api/events/${id}`);
   } catch (error) {
     console.error(`Failed to fetch event with id ${id}:`, error);
@@ -42,29 +63,25 @@ export async function getEventById(id: string): Promise<Event | null> {
   }
 }
 
-/**
- * Toggles user interest in an event
- * @param eventId - Event ID
- * @returns Promise with success status and interest state
- */
+// Interest-related functions based on the provided backend code
 export async function toggleEventInterest(
   eventId: string
 ): Promise<{ success: boolean; isInterested: boolean }> {
   try {
     console.log("Toggling interest for event:", eventId);
 
-    // Check current interest status
+    // First check current interest status
     const checkResponse = await apiGet(`/api/interests/check/${eventId}`);
     console.log("Current interest status:", checkResponse);
 
     let result;
     if (checkResponse && checkResponse.interested) {
-      // Remove interest
+      // If already interested, remove interest
       console.log("Removing interest...");
       await apiDelete(`/api/interests/event/${eventId}`);
       result = { success: true, isInterested: false };
     } else {
-      // Add interest
+      // If not interested, add interest
       console.log("Adding interest...");
       await apiPost("/api/interests", { eventId });
       result = { success: true, isInterested: true };
@@ -81,10 +98,6 @@ export async function toggleEventInterest(
   }
 }
 
-/**
- * Fetches user's interested events
- * @returns Promise resolving to array of events
- */
 export async function getInterestedEvents(): Promise<Event[]> {
   try {
     console.log("Fetching interested events from API...");
@@ -92,27 +105,32 @@ export async function getInterestedEvents(): Promise<Event[]> {
     console.log("API response:", response);
 
     if (response && response.data && Array.isArray(response.data)) {
-      return response.data.map((item: any) => item.event);
+      const events = response.data.map((item: any) => item.event);
+      console.log("Extracted events:", events);
+      return events;
     } else if (response && Array.isArray(response)) {
+      // In case the response is directly an array
+      console.log("Direct array response:", response);
       return response;
     }
 
+    console.log("No events data found in response");
     return [];
   } catch (error) {
     console.error("Failed to fetch interested events:", error);
+    // If unauthorized, just return empty array instead of throwing
     if (error instanceof Error && error.message.includes("Unauthorized")) {
+      console.log("User not authorized, returning empty array");
       return [];
     }
     throw error;
   }
 }
 
-/**
- * Joins user to an event
- * @param eventId - Event ID
- * @returns Promise with success status
- */
-export async function joinEvent(eventId: string): Promise<{ success: boolean }> {
+// Attendance-related functions
+export async function joinEvent(
+  eventId: string
+): Promise<{ success: boolean }> {
   try {
     const user = JSON.parse(localStorage.getItem("user") || "null");
     if (!user?.id) throw new Error("User not logged in");
@@ -131,12 +149,9 @@ export async function joinEvent(eventId: string): Promise<{ success: boolean }> 
   }
 }
 
-/**
- * Removes user from an event
- * @param eventId - Event ID
- * @returns Promise with success status
- */
-export async function leaveEvent(eventId: string): Promise<{ success: boolean }> {
+export async function leaveEvent(
+  eventId: string
+): Promise<{ success: boolean }> {
   try {
     const user = JSON.parse(localStorage.getItem("user") || "null");
     if (!user?.id) throw new Error("User not logged in");
