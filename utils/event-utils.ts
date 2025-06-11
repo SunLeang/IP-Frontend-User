@@ -1,10 +1,38 @@
-import { Event, EventCardData } from "@/types/event";
-import { getValidImageSrc } from "@/lib/image-utils";
+import { Event, EventCardData, EventStatus } from "@/types/event";
 
 /**
  * Event utility functions
  * Helper functions for event data transformation and formatting
  */
+
+/**
+ * Gets a valid image source, with fallback only when truly needed
+ * @param src - Image source URL from API
+ * @returns Valid image URL or fallback only if src is null/undefined/empty
+ */
+export function getValidImageSrc(src: string | null | undefined): string {
+  // Be very specific about what constitutes an invalid image
+  if (
+    src === null ||
+    src === undefined ||
+    src === "" ||
+    src === "null" ||
+    src === "undefined"
+  ) {
+    console.log("No valid image source, using fallback for:", src);
+    return "/assets/constants/billboard.png";
+  }
+
+  // Handle relative paths without leading slash
+  if (src && !src.startsWith("/") && !src.startsWith("http")) {
+    console.log(`Fixing relative path: ${src} -> /${src}`);
+    return `/${src}`;
+  }
+
+  // If we have any other value, use it (let the browser handle invalid URLs)
+  console.log("Using API image source:", src);
+  return src;
+}
 
 /**
  * Transforms an Event object to EventCardData format
@@ -14,10 +42,18 @@ import { getValidImageSrc } from "@/lib/image-utils";
 export function transformEventToCardData(event: Event): EventCardData {
   const eventDate = new Date(event.dateTime);
 
+  const imageSource = event.profileImage || event.coverImage;
+  console.log(`Transforming event "${event.name}":`, {
+    profileImage: event.profileImage,
+    coverImage: event.coverImage,
+    selectedSource: imageSource,
+    finalImage: getValidImageSrc(imageSource),
+  });
+
   return {
     id: event.id,
     title: event.name,
-    image: getValidImageSrc(event.profileImage || event.coverImage),
+    image: getValidImageSrc(imageSource),
     category: event.category?.name || "Uncategorized",
     date: {
       month: eventDate
@@ -31,7 +67,7 @@ export function transformEventToCardData(event: Event): EventCardData {
       minute: "numeric",
       hour12: true,
     }),
-    price: 0, // 0 by default
+    price: 0,
     interested: event._count?.interestedUsers || 0,
   };
 }

@@ -1,11 +1,13 @@
 import { apiGet, apiPost, apiDelete } from "./api";
 import { Event, EventsFilterParams } from "@/types/event";
-import { createEventQueryString } from "@/utils/event-utils";
 
 /**
  * Event Service
  * Handles all event-related API operations
  */
+
+// Re-export types for convenience
+export type { Event, EventsFilterParams } from "@/types/event";
 
 /**
  * Fetches events with optional filtering
@@ -15,12 +17,43 @@ import { createEventQueryString } from "@/utils/event-utils";
 export async function getEvents(params?: EventsFilterParams): Promise<Event[]> {
   try {
     console.log("Fetching events with params:", params);
-    
-    const queryString = params ? createEventQueryString(params as Record<string, string>) : "";
+
+    let queryString = "";
+    if (params) {
+      const searchParams = new URLSearchParams();
+      if (params.categoryId)
+        searchParams.append("categoryId", params.categoryId);
+      if (params.status) searchParams.append("status", params.status);
+      if (params.acceptingVolunteers !== undefined) {
+        searchParams.append(
+          "acceptingVolunteers",
+          params.acceptingVolunteers.toString()
+        );
+      }
+      queryString = `?${searchParams.toString()}`;
+    }
+
     const response = await apiGet(`/api/events${queryString}`);
-    
+    console.log("RAW API RESPONSE FOR EVENTS:", response);
+
     // Handle different response structures
-    return response.data || response || [];
+    const events = response.data || response || [];
+
+    // Log each event's image data specifically
+    console.log(
+      "EVENTS IMAGE DATA:",
+      events.map((e: any, index: number) => ({
+        index,
+        id: e.id,
+        name: e.name,
+        profileImage: e.profileImage,
+        coverImage: e.coverImage,
+        category: e.category?.name,
+        categoryImage: e.category?.image,
+      }))
+    );
+
+    return events;
   } catch (error) {
     console.error("Failed to fetch events:", error);
     return [];
@@ -112,7 +145,9 @@ export async function getInterestedEvents(): Promise<Event[]> {
  * @param eventId - Event ID
  * @returns Promise with success status
  */
-export async function joinEvent(eventId: string): Promise<{ success: boolean }> {
+export async function joinEvent(
+  eventId: string
+): Promise<{ success: boolean }> {
   try {
     const user = JSON.parse(localStorage.getItem("user") || "null");
     if (!user?.id) throw new Error("User not logged in");
@@ -136,7 +171,9 @@ export async function joinEvent(eventId: string): Promise<{ success: boolean }> 
  * @param eventId - Event ID
  * @returns Promise with success status
  */
-export async function leaveEvent(eventId: string): Promise<{ success: boolean }> {
+export async function leaveEvent(
+  eventId: string
+): Promise<{ success: boolean }> {
   try {
     const user = JSON.parse(localStorage.getItem("user") || "null");
     if (!user?.id) throw new Error("User not logged in");

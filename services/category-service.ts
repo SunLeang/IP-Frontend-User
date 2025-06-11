@@ -10,6 +10,13 @@ import {
  * Handles all category-related API operations
  */
 
+// Re-export types for convenience
+export type {
+  Category,
+  CategoryEvent,
+  CategoryWithEventsResponse,
+} from "@/types/category";
+
 /**
  * Fetches all categories for general use (filtering, navigation, etc.)
  * @returns Promise resolving to array of categories

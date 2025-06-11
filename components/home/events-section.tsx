@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface Event {
   id: string;
   title: string;
-  img: string;
+  image: string; // This should now contain the actual API image or fallback
   category: string;
   date: {
     month: string;
@@ -62,20 +62,26 @@ export function EventsSection({
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {events.map((event) => (
-              <EventCard
-                key={event.id}
-                id={event.id}
-                title={event.title}
-                image={event.img} // Let EventCard handle the image processing
-                category={event.category}
-                date={event.date}
-                venue={event.venue}
-                time={event.time}
-                price={event.price}
-                interested={event.interested}
-              />
-            ))}
+            {events.map((event) => {
+              console.log(
+                `Rendering EventCard for "${event.title}" with image:`,
+                event.image
+              );
+              return (
+                <EventCard
+                  key={event.id}
+                  id={event.id}
+                  title={event.title}
+                  image={event.image} // Pass the image as-is (already processed)
+                  category={event.category}
+                  date={event.date}
+                  venue={event.venue}
+                  time={event.time}
+                  price={event.price}
+                  interested={event.interested}
+                />
+              );
+            })}
           </div>
         )}
       </div>

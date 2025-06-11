@@ -1,32 +1,22 @@
 // context/auth-context.tsx
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 import { useRouter } from "next/navigation";
 import { apiGet, apiPost } from "@/services/api";
-import { clearAuthData, storeAuthData, validateAuthResponse, getStoredUser } from "@/utils/auth-utils";
-
-export enum CurrentRole {
-  ATTENDEE = "ATTENDEE",
-  VOLUNTEER = "VOLUNTEER",
-}
-
-export enum SystemRole {
-  USER = "USER",
-  ADMIN = "ADMIN",
-}
-
-export interface User {
-  id: string;
-  email: string;
-  fullName: string;
-  systemRole: SystemRole;
-  currentRole: CurrentRole;
-  profileImage?: string;
-  gender?: string;
-  age?: number;
-  org?: string;
-}
+import {
+  clearAuthData,
+  storeAuthData,
+  validateAuthResponse,
+  getStoredUser,
+} from "@/utils/auth-utils";
+import { SystemRole, CurrentRole, User } from "@/types/user"; // Import from centralized types
 
 export interface RegisterData {
   email: string;
@@ -60,13 +50,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     clearAuthData();
-    const response = await apiPost("/api/auth/login", { email: email.trim().toLowerCase(), password });
+    const response = await apiPost("/api/auth/login", {
+      email: email.trim().toLowerCase(),
+      password,
+    });
     const validated = validateAuthResponse(response);
     storeAuthData(validated);
     setUser(validated.user);
     setIsAuthenticated(true);
     // Redirect based on role
-    const redirect = validated.user.currentRole === CurrentRole.VOLUNTEER ? "/volunteer-role/dashboard" : "/";
+    const redirect =
+      validated.user.currentRole === CurrentRole.VOLUNTEER
+        ? "/volunteer-role/dashboard"
+        : "/";
     router.push(redirect);
   };
 
@@ -98,7 +94,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       storeAuthData(validated);
       setUser(validated.user);
       setIsAuthenticated(true);
-      const redirect = role === CurrentRole.VOLUNTEER ? "/volunteer-role/dashboard" : "/";
+      const redirect =
+        role === CurrentRole.VOLUNTEER ? "/volunteer-role/dashboard" : "/";
       router.push(redirect);
     } catch (error) {
       console.error("Failed to switch role:", error);
@@ -108,8 +105,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const hasCurrentRole = (role: CurrentRole): boolean => user?.currentRole === role || getStoredUser()?.currentRole === role;
-  const hasRole = (role: SystemRole): boolean => user?.systemRole === role || getStoredUser()?.systemRole === role;
+  const hasCurrentRole = (role: CurrentRole): boolean =>
+    user?.currentRole === role || getStoredUser()?.currentRole === role;
+  const hasRole = (role: SystemRole): boolean =>
+    user?.systemRole === role || getStoredUser()?.systemRole === role;
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -121,7 +120,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           const userData = await apiGet("/api/users/me");
           if (userData) {
-            const validated = validateAuthResponse({ user: userData, accessToken: localStorage.getItem("accessToken")! });
+            const validated = validateAuthResponse({
+              user: userData,
+              accessToken: localStorage.getItem("accessToken")!,
+            });
             storeAuthData(validated);
             setUser(validated.user);
             setIsAuthenticated(true);
@@ -143,7 +145,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchUser();
   }, []);
 
-  const value = { user, isAuthenticated, isLoading, login, register, logout, switchRole, hasCurrentRole, hasRole };
+  const value = {
+    user,
+    isAuthenticated,
+    isLoading,
+    login,
+    register,
+    logout,
+    switchRole,
+    hasCurrentRole,
+    hasRole,
+  };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

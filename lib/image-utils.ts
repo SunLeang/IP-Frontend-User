@@ -1,56 +1,97 @@
-// Create a new file: lib/image-utils.ts
-export function getValidImageSrc(src: string | undefined | null): string {
-  // Default fallback image
-  const fallbackImage = "/assets/constants/billboard.png";
+/**
+ * Image utility functions
+ * Helper functions for handling image sources and validation
+ */
 
-  // If no src provided, return fallback
-  if (!src) return fallbackImage;
-
-  // If it's already a local path, return as is
-  if (src.startsWith("/")) return src;
-
-  // IMPORTANT: For external URLs, return fallback immediately to prevent Next.js from trying to fetch them
-  if (src.startsWith("http")) {
-    console.warn(`External image URL blocked: ${src}. Using fallback.`);
-    return fallbackImage;
+/**
+ * Gets a valid image source with fallback only when needed
+ * @param src - Image source URL (can be null, undefined, or empty)
+ * @param fallback - Fallback image path
+ * @returns Valid image URL or fallback only if src is invalid
+ */
+export function getValidImageSrc(
+  src: string | null | undefined,
+  fallback: string = "/assets/constants/billboard.png"
+): string {
+  // Only use fallback if src is truly invalid
+  if (!src || src.trim() === "" || src === "null" || src === "undefined") {
+    return fallback;
   }
 
-  // If it's a relative path, make it absolute
-  return `/assets/images/${src}`;
+  // Handle relative paths without leading slash - Next.js requires leading slash
+  if (
+    src &&
+    !src.startsWith("/") &&
+    !src.startsWith("http") &&
+    !src.startsWith("data:")
+  ) {
+    console.log(`Fixing relative path: ${src} -> /${src}`);
+    return `/${src}`;
+  }
+
+  // Return the actual image path from API
+  return src;
 }
 
-// Enhanced version with allowlist for trusted domains
+/**
+ * Enhanced version with allowlist for trusted domains (for external URLs)
+ * @param src - Image source URL
+ * @param allowedDomains - Array of allowed domain names
+ * @param fallback - Fallback image path
+ * @returns Valid image URL
+ */
 export function getImageSrcWithFallback(
   src: string | undefined | null,
   allowedDomains: string[] = [],
-  fallbackImage: string = "/assets/constants/billboard.png"
+  fallback: string = "/assets/constants/billboard.png"
 ): string {
-  if (!src) return fallbackImage;
+  if (!src || src.trim() === "" || src === "null" || src === "undefined") {
+    return fallback;
+  }
 
-  if (src.startsWith("/")) return src;
+  // If it's a local path (starts with /), use it directly
+  if (src.startsWith("/")) {
+    return src;
+  }
 
+  // Handle relative paths - add leading slash
+  if (!src.startsWith("http") && !src.startsWith("data:")) {
+    return `/${src}`;
+  }
+
+  // Handle external URLs
   if (src.startsWith("http")) {
     try {
       const url = new URL(src);
       // Only allow specific trusted domains
-      if (allowedDomains.includes(url.hostname)) {
+      if (
+        allowedDomains.length === 0 ||
+        allowedDomains.includes(url.hostname)
+      ) {
         return src;
       } else {
         console.warn(
           `Untrusted domain blocked: ${url.hostname}. Using fallback.`
         );
-        return fallbackImage;
+        return fallback;
       }
     } catch {
       console.warn(`Invalid URL: ${src}. Using fallback.`);
-      return fallbackImage;
+      return fallback;
     }
   }
 
-  return `/assets/images/${src}`;
+  // For relative paths from API, use them as-is with leading slash
+  return src;
 }
 
-// For creating safe image props with client-side error handling
+/**
+ * For creating safe image props with client-side error handling
+ * @param src - Image source from API
+ * @param alt - Alt text for image
+ * @param allowedDomains - Allowed external domains
+ * @returns Safe image props object
+ */
 export function createSafeImageProps(
   src: string | undefined | null,
   alt: string,
@@ -64,7 +105,11 @@ export function createSafeImageProps(
     alt,
     onError: (e: any) => {
       // Only set fallback if current src is not already the fallback
-      if (e.target.src !== fallback) {
+      if (
+        e.target.src !== fallback &&
+        e.target.src !== window.location.origin + fallback
+      ) {
+        console.warn(`Image failed to load: ${e.target.src}, using fallback`);
         e.target.src = fallback;
       }
     },

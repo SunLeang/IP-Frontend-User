@@ -4,7 +4,7 @@ import type React from "react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
-import type { SystemRole, CurrentRole } from "@/types/user";
+import { SystemRole, CurrentRole } from "@/types/user"; // Import from centralized types
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { getValidImageSrc } from "@/lib/image-utils";
 import Link from "next/link";
 import { Star, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +11,7 @@ import { useState } from "react";
 interface EventCardProps {
   id: string;
   title: string;
-  image: string;
+  image: string; // This should already be processed by transformEventToCardData
   category: string;
   date: {
     month: string;
@@ -38,8 +37,11 @@ export function EventCard({
   const { addInterest, removeInterest, isInterested } = useInterest();
   const saved = isInterested(id);
 
-  // Process image immediately to prevent external fetching
-  const [imgSrc] = useState(() => getValidImageSrc(image));
+  // Use the image as-is since it's already been processed
+  const [imgSrc, setImgSrc] = useState(image);
+  const [hasError, setHasError] = useState(false);
+
+  console.log(`EventCard for "${title}" using image:`, imgSrc);
 
   const handleInterestToggle = () => {
     if (saved) {
@@ -48,7 +50,7 @@ export function EventCard({
       addInterest({
         id,
         title,
-        image: imgSrc, // This is now guaranteed to be safe
+        image: imgSrc,
         category,
         date,
         venue,
@@ -56,6 +58,14 @@ export function EventCard({
         price,
         interested,
       });
+    }
+  };
+
+  const handleImageError = () => {
+    if (!hasError) {
+      console.warn(`Image failed to load for event "${title}": ${imgSrc}`);
+      setImgSrc("/assets/constants/billboard.png");
+      setHasError(true);
     }
   };
 
@@ -68,6 +78,7 @@ export function EventCard({
           width={400}
           height={200}
           className="w-full h-40 object-cover"
+          onError={handleImageError}
         />
         <Badge
           className={`absolute bottom-2 left-2 ${
