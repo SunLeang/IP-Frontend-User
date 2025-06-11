@@ -3,9 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import React from "react";
-import { getEventById } from "@/services/event-service";
-import { applyForVolunteer } from "@/services/volunteer-service";
 import { useAuth } from "@/context/auth-context";
+import { useVolunteerApplication } from "@/hooks/useVolunteerApplication";
 import { VolunteerDetailHeader } from "@/components/volunteer/volunteer-detail-header";
 import { ApplicationProgress } from "@/components/volunteer/application-progress";
 import { ApplicationFormStep1 } from "@/components/volunteer/application-form-step1";
@@ -33,26 +32,27 @@ export default function VolunteerApplicationPage({
   const router = useRouter();
   const { isAuthenticated, user, isLoading: authLoading } = useAuth();
 
-  // State management
+  // UI state
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState({
-    fullName: "",
-    gender: "",
-    age: "",
-    status: "",
-    organization: "",
-    reason: "",
-  });
-  const [files, setFiles] = useState<
-    { name: string; size: number; progress: number; completed: boolean }[]
-  >([]);
   const [isDragging, setIsDragging] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [event, setEvent] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Use custom hook for application logic
+  const {
+    event,
+    isLoading,
+    error,
+    formData,
+    setFormData,
+    files,
+    setFiles,
+    isSubmitting,
+    submitApplication,
+    prefillUserData,
+    validateStep,
+  } = useVolunteerApplication(id, isAuthenticated);
 
   // Authentication check
   useEffect(() => {
@@ -65,40 +65,20 @@ export default function VolunteerApplicationPage({
     }
   }, [isAuthenticated, authLoading, router, id]);
 
-  // Fetch event data
+  // Prefill user data when user is available
   useEffect(() => {
-    if (authLoading || !isAuthenticated) return;
+    if (user) {
+      prefillUserData(user);
+    }
+  }, [user]);
 
-    const fetchEvent = async () => {
-      setIsLoading(true);
-      try {
-        const eventData = await getEventById(id);
-        if (eventData) {
-          setEvent(eventData);
-          if (user) {
-            setFormData((prevData) => ({
-              ...prevData,
-              fullName: user.fullName || "",
-              gender: user.gender || "",
-              age: user.age?.toString() || "",
-              organization: user.org || "",
-            }));
-          }
-        } else {
-          setErrorMessage("Event not found");
-          setShowErrorModal(true);
-        }
-      } catch (error) {
-        console.error("Error fetching event:", error);
-        setErrorMessage("Failed to load event details");
-        setShowErrorModal(true);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchEvent();
-  }, [id, isAuthenticated, authLoading, user]);
+  // Handle API errors
+  useEffect(() => {
+    if (error) {
+      setErrorMessage(error);
+      setShowErrorModal(true);
+    }
+  }, [error]);
 
   // Event handlers
   const handleInputChange = (
@@ -110,7 +90,6 @@ export default function VolunteerApplicationPage({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // New function to handle direct step navigation
   const handleGoToStep = (targetStep: number) => {
     if (targetStep >= 1 && targetStep <= 3) {
       setStep(targetStep);
@@ -118,24 +97,11 @@ export default function VolunteerApplicationPage({
   };
 
   const handleNext = () => {
-    if (step === 1) {
-      if (
-        !formData.fullName ||
-        !formData.gender ||
-        !formData.age ||
-        !formData.status
-      ) {
-        setErrorMessage("Please fill in all required fields");
-        setShowErrorModal(true);
-        return;
-      }
-    }
-    if (step === 2) {
-      if (files.length === 0) {
-        setErrorMessage("Please upload your CV");
-        setShowErrorModal(true);
-        return;
-      }
+    const validation = validateStep(step);
+    if (!validation.isValid) {
+      setErrorMessage(validation.errorMessage || "Validation failed");
+      setShowErrorModal(true);
+      return;
     }
     setStep((prev) => Math.min(3, prev + 1));
   };
@@ -185,35 +151,13 @@ export default function VolunteerApplicationPage({
 
   const handleSubmit = async () => {
     try {
-      setIsSubmitting(true);
-
-      if (!formData.reason || !formData.reason.trim()) {
-        setErrorMessage("Please explain why you want to volunteer");
-        setShowErrorModal(true);
-        return;
-      }
-      if (files.length === 0) {
-        setErrorMessage("Please upload your CV");
-        setShowErrorModal(true);
-        return;
-      }
-
-      const cvPath = `/uploads/cv/${files[0].name}`;
-      await applyForVolunteer({
-        eventId: id,
-        whyVolunteer: formData.reason,
-        cvPath: cvPath,
-      });
-
+      await submitApplication();
       setShowSuccessModal(true);
     } catch (error: any) {
-      console.error("Error submitting volunteer application:", error);
       setErrorMessage(
         error.message || "Failed to submit your application. Please try again."
       );
       setShowErrorModal(true);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -295,7 +239,7 @@ export default function VolunteerApplicationPage({
             eventName={event?.name}
             onBack={handleBack}
             onSubmit={handleSubmit}
-            onGoToStep={handleGoToStep} // Pass the new navigation function
+            onGoToStep={handleGoToStep}
             isSubmitting={isSubmitting}
           />
         )}
