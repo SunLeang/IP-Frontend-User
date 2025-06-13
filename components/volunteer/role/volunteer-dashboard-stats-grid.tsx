@@ -1,5 +1,7 @@
 import { StatCard } from "@/components/volunteer/stat-card";
 import { Users, ClipboardList, UserCheck } from "lucide-react";
+import { useState, useEffect } from "react";
+import { apiGet } from "@/services/api";
 
 interface DashboardStats {
   attendeeCount: number;
@@ -8,17 +10,63 @@ interface DashboardStats {
 }
 
 interface VolunteerDashboardStatsGridProps {
-  stats: DashboardStats;
+  fallbackStats?: DashboardStats | null;
 }
 
 export function VolunteerDashboardStatsGrid({
-  stats,
+  fallbackStats,
 }: VolunteerDashboardStatsGridProps) {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
+      try {
+        setIsLoading(true);
+        console.log(
+          "Fetching dashboard stats from /api/volunteer/dashboard/stats"
+        );
+
+        const dashboardStats = await apiGet("/api/volunteer/dashboard/stats");
+
+        if (dashboardStats) {
+          setStats(dashboardStats);
+          console.log("Successfully loaded dashboard stats:", dashboardStats);
+        } else if (fallbackStats) {
+          setStats(fallbackStats);
+        }
+      } catch (error) {
+        console.error("Error fetching dashboard stats:", error);
+        if (fallbackStats) {
+          setStats(fallbackStats);
+        } else {
+          setStats({
+            attendeeCount: 0,
+            taskCount: 0,
+            volunteerCount: 0,
+          });
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboardStats();
+  }, [fallbackStats]);
+
+  // Use fetched stats or fallback (handles both null and undefined)
+  const displayStats = stats ||
+    fallbackStats || {
+      attendeeCount: 0,
+      taskCount: 0,
+      volunteerCount: 0,
+    };
+
   // Transform stats into the format expected by StatCard
   const statCards = [
     {
       title: "Total Attendee",
-      value: stats.attendeeCount,
+      value: displayStats.attendeeCount,
       change: {
         value: 8.5,
         isIncrease: true,
@@ -28,7 +76,7 @@ export function VolunteerDashboardStatsGrid({
     },
     {
       title: "Total Tasks",
-      value: stats.taskCount,
+      value: displayStats.taskCount,
       change: {
         value: 4.3,
         isIncrease: false,
@@ -38,7 +86,7 @@ export function VolunteerDashboardStatsGrid({
     },
     {
       title: "Total Volunteer",
-      value: stats.volunteerCount,
+      value: displayStats.volunteerCount,
       change: {
         value: 3.3,
         isIncrease: true,
@@ -54,7 +102,7 @@ export function VolunteerDashboardStatsGrid({
         <StatCard
           key={index}
           title={stat.title}
-          value={stat.value}
+          value={isLoading ? "..." : stat.value}
           change={stat.change}
           icon={stat.icon}
         />

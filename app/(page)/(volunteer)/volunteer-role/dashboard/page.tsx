@@ -1,23 +1,23 @@
 "use client";
 
 import { useAuth } from "@/context/auth-context";
-import { useVolunteerDashboard } from "@/hooks/useVolunteerDashboard";
 import { VolunteerDashboardLoading } from "@/components/volunteer/role/volunteer-dashboard-loading";
 import { VolunteerDashboardError } from "@/components/volunteer/role/volunteer-dashboard-error";
 import { VolunteerDashboardEventBanner } from "@/components/volunteer/role/volunteer-dashboard-event-banner";
 import { VolunteerDashboardStatsGrid } from "@/components/volunteer/role/volunteer-dashboard-stats-grid";
 import { VolunteerDashboardActions } from "@/components/volunteer/role/volunteer-dashboard-actions";
 import { EventTable } from "@/components/volunteer/event-table";
+import { useVolunteerDashboard } from "@/hooks/useVolunteerDashboard";
 import { useEffect } from "react";
 
 export default function VolunteerRoleDashboardPage() {
   const { isLoading: authLoading } = useAuth();
-  const { 
-    stats, 
-    events, 
-    isLoading: dashboardLoading, 
-    error, 
-    refetch 
+  const {
+    stats,
+    events,
+    isLoading: dashboardLoading,
+    error,
+    refetch,
   } = useVolunteerDashboard();
 
   // Emergency redirect check for unauthorized access
@@ -38,7 +38,7 @@ export default function VolunteerRoleDashboardPage() {
   // Handle download report action
   const handleDownloadReport = () => {
     console.log("Downloading volunteer dashboard report...");
-    // ... to be implement
+    // TODO: Implement actual report generation
   };
 
   // Show loading state
@@ -48,17 +48,7 @@ export default function VolunteerRoleDashboardPage() {
 
   // Show error state
   if (error) {
-    return (
-      <VolunteerDashboardError 
-        error={error} 
-        onRetry={refetch} 
-      />
-    );
-  }
-
-  // Ensure we have stats before rendering
-  if (!stats) {
-    return <VolunteerDashboardLoading />;
+    return <VolunteerDashboardError error={error} onRetry={refetch} />;
   }
 
   return (
@@ -70,8 +60,8 @@ export default function VolunteerRoleDashboardPage() {
       <div className="container mx-auto px-4 py-6">
         <h2 className="text-xl font-bold mb-4">Dashboard</h2>
 
-        {/* Stats Cards */}
-        <VolunteerDashboardStatsGrid stats={stats} />
+        {/* Stats Cards - Now fetches from API directly */}
+        <VolunteerDashboardStatsGrid fallbackStats={stats} />
 
         {/* Download Report Button */}
         <VolunteerDashboardActions onDownloadReport={handleDownloadReport} />
