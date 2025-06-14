@@ -1,314 +1,272 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Search, ChevronLeft, ChevronRight, Eye, Check } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { useState, useMemo, useEffect } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useVolunteerTasks } from "@/hooks/useVolunteerTasks";
+import { TaskAssignment } from "@/services/task-service";
+import { TaskList } from "@/components/volunteer/tasks/task-list";
+import { TaskDetailPanel } from "@/components/volunteer/tasks/task-detail-panel";
+import { TaskFilters } from "@/components/volunteer/tasks/task-filters";
 
 export default function VolunteerTasksPage() {
-  const [selectedTask, setSelectedTask] = useState<string | null>(null)
-  const [tasks, setTasks] = useState([
-    {
-      id: "ev-000001",
-      description: "Event Setup & Cleanup",
-      status: "Pending",
-      type: "Logistic",
-      date: "12-12-2024",
-      details: "Help arrange tables, book displays, banners, and decorations before and after the event.",
-    },
-    {
-      id: "ev-000002",
-      description: "Book Organization",
-      status: "Pending",
-      type: "Logistic",
-      date: "12-12-2024",
-      details: "Sort and organize books by genre, author, and age group for easy browsing.",
-    },
-    {
-      id: "ev-000003",
-      description: "Guest Assistance",
-      status: "Pending",
-      type: "Assistance",
-      date: "12-12-2024",
-      details: "Guide visitors, answer questions, and help them find books they're interested in.",
-    },
-    {
-      id: "ev-000004",
-      description: "Inventory Management",
-      status: "Done",
-      type: "Logistic",
-      date: "12-12-2024",
-      details: "Track book inventory, sales, and help with restocking popular titles.",
-    },
-    {
-      id: "ev-000005",
-      description: "Event Photography",
-      status: "Done",
-      type: "Media",
-      date: "12-12-2024",
-      details: "Take photos of the event, attendees, and special moments for social media and documentation.",
-    },
-    {
-      id: "ev-000006",
-      description: "Safety & Security Awareness",
-      status: "Pending",
-      type: "Assistance",
-      date: "12-12-2024",
-      details: "Monitor the venue for any safety concerns and report issues to event coordinators.",
-    },
-    {
-      id: "ev-000007",
-      description: "Visitor Feedback Collection",
-      status: "Done",
-      type: "Media",
-      date: "12-12-2024",
-      details: "Collect feedback from visitors about their experience and suggestions for improvement.",
-    },
-    {
-      id: "ev-000008",
-      description: "Announcement Assistance",
-      status: "Pending",
-      type: "Assistance",
-      date: "12-12-2024",
-      details: "Help with announcements, author introductions, and event scheduling.",
-    },
-    {
-      id: "ev-000009",
-      description: "Decor & Atmosphere",
-      status: "Done",
-      type: "IT",
-      date: "12-12-2024",
-      details: "Create an inviting atmosphere with decorations, lighting, and music.",
-    },
-    {
-      id: "ev-000010",
-      description: "Vendor & Exhibitor Support",
-      status: "Done",
-      type: "Assistance",
-      date: "12-12-2024",
-      details: "Assist vendors and exhibitors with setup, technical needs, and general support.",
-    },
-  ])
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [isUpdatingTask, setIsUpdatingTask] = useState(false);
 
-  const handleViewTask = (taskId: string) => {
-    setSelectedTask(taskId)
-  }
+  const {
+    tasks,
+    isLoading,
+    error,
+    totalTasks,
+    refreshTasks,
+    updateTask,
+    setFilter,
+    currentFilter,
+  } = useVolunteerTasks();
 
-  const handleCompleteTask = (taskId: string) => {
-    setTasks(tasks.map((task) => (task.id === taskId ? { ...task, status: "Done" } : task)))
-  }
+  // Filter tasks based on search and status
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((taskAssignment) => {
+      const matchesSearch =
+        !searchTerm ||
+        taskAssignment.task.name
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        taskAssignment.task.description
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase());
+
+      const matchesStatus =
+        !selectedStatus || taskAssignment.status === selectedStatus;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [tasks, searchTerm, selectedStatus]);
+
+  // Get selected task details
+  const selectedTask = useMemo(() => {
+    return tasks.find((task) => task.id === selectedTaskId) || null;
+  }, [tasks, selectedTaskId]);
+
+  // Event handlers
+  const handleTaskSelect = (taskId: string) => {
+    setSelectedTaskId(taskId === selectedTaskId ? null : taskId);
+  };
+
+  const handleTaskStatusUpdate = async (
+    assignmentId: string,
+    status: string
+  ) => {
+    try {
+      setIsUpdatingTask(true);
+      await updateTask(assignmentId, status);
+
+      // Show success message (you can implement toast notifications here)
+      console.log(`Task status updated to ${status}`);
+    } catch (error) {
+      console.error("Failed to update task status:", error);
+      // Show error message (you can implement toast notifications here)
+    } finally {
+      setIsUpdatingTask(false);
+    }
+  };
+
+  const handleStatusUpdate = async (status: string) => {
+    if (!selectedTaskId) return;
+    await handleTaskStatusUpdate(selectedTaskId, status);
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+  };
+
+  const handleStatusChange = (status: string) => {
+    setSelectedStatus(status);
+  };
+
+  const handleRefresh = () => {
+    refreshTasks();
+  };
 
   const handleCloseTaskDetail = () => {
-    setSelectedTask(null)
+    setSelectedTaskId(null);
+  };
+
+  // Loading state
+  if (isLoading && tasks.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-6">
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading your tasks...</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
-  const selectedTaskData = tasks.find((task) => task.id === selectedTask)
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-6">
+          <div className="text-center py-12">
+            <p className="text-red-500 mb-4">{error}</p>
+            <Button onClick={handleRefresh}>Try Again</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-6">
-        <h1 className="text-2xl font-bold mb-4">You&apos;re volunteering for BookFair Event</h1>
+        {/* Header */}
+        <h1 className="text-2xl font-bold mb-4">Your Volunteer Tasks</h1>
 
+        {/* Breadcrumb */}
         <div className="flex items-center mb-4">
           <div className="flex items-center">
-            <span className="text-sm text-gray-500 mr-2">Events</span>
+            <span className="text-sm text-gray-500 mr-2">Tasks</span>
             <span className="text-sm text-gray-500 mx-2">›</span>
-            <span className="text-sm font-medium">Volunteers</span>
+            <span className="text-sm font-medium">My Assignments</span>
           </div>
 
-          <div className="ml-auto flex items-center gap-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input placeholder="Search..." className="pl-10 w-64" />
-            </div>
-            <Button variant="outline" size="icon">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M3 6h18M3 12h18M3 18h18" />
-              </svg>
-            </Button>
-            <Button variant="outline" size="icon">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="12" r="1" />
-                <circle cx="19" cy="12" r="1" />
-                <circle cx="5" cy="12" r="1" />
-              </svg>
-            </Button>
-          </div>
+          {/* Filters */}
+          <TaskFilters
+            searchTerm={searchTerm}
+            selectedStatus={selectedStatus}
+            onSearchChange={handleSearchChange}
+            onStatusChange={handleStatusChange}
+            onRefresh={handleRefresh}
+          />
         </div>
 
         <div className="relative">
-          {/* Task List */}
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-50 text-left">
-                <tr>
-                  <th className="px-4 py-3 text-sm font-medium text-gray-500">No.</th>
-                  <th className="px-4 py-3 text-sm font-medium text-gray-500">ID</th>
-                  <th className="px-4 py-3 text-sm font-medium text-gray-500">Description</th>
-                  <th className="px-4 py-3 text-sm font-medium text-gray-500">Status</th>
-                  <th className="px-4 py-3 text-sm font-medium text-gray-500">Types</th>
-                  <th className="px-4 py-3 text-sm font-medium text-gray-500">Date</th>
-                  <th className="px-4 py-3 text-sm font-medium text-gray-500"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {tasks.map((task, index) => (
-                  <tr key={task.id} className="border-t">
-                    <td className="px-4 py-3 text-sm">{index + 1}</td>
-                    <td className="px-4 py-3 text-sm">{task.id}</td>
-                    <td className="px-4 py-3 text-sm font-medium">{task.description}</td>
-                    <td className="px-4 py-3 text-sm">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs ${
-                          task.status === "Done" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
-                        }`}
-                      >
-                        {task.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm">{task.type}</td>
-                    <td className="px-4 py-3 text-sm">
-                      {task.status === "Pending" && index === 1 ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex items-center text-xs"
-                          onClick={() => handleViewTask(task.id)}
-                        >
-                          <Eye size={14} className="mr-1" />
-                          View
-                        </Button>
-                      ) : task.status === "Pending" && index === 2 ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex items-center text-xs bg-green-50 text-green-600 border-green-200 hover:bg-green-100"
-                          onClick={() => handleCompleteTask(task.id)}
-                        >
-                          <Check size={14} className="mr-1" />
-                          Complete
-                        </Button>
-                      ) : (
-                        task.date
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <button onClick={() => handleViewTask(task.id)}>
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="text-gray-500"
-                        >
-                          <circle cx="12" cy="12" r="1" />
-                          <circle cx="19" cy="12" r="1" />
-                          <circle cx="5" cy="12" r="1" />
-                        </svg>
-                      </button>
-                    </td>
+          {/* Task List - Added relative positioning and z-index management */}
+          <div className="bg-white rounded-lg shadow-sm overflow-visible relative z-10">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 text-left sticky top-0 z-20">
+                  <tr>
+                    <th className="px-4 py-3 text-sm font-medium text-gray-500">
+                      No.
+                    </th>
+                    <th className="px-4 py-3 text-sm font-medium text-gray-500">
+                      ID
+                    </th>
+                    <th className="px-4 py-3 text-sm font-medium text-gray-500">
+                      Description
+                    </th>
+                    <th className="px-4 py-3 text-sm font-medium text-gray-500">
+                      Status
+                    </th>
+                    <th className="px-4 py-3 text-sm font-medium text-gray-500">
+                      Type
+                    </th>
+                    <th className="px-4 py-3 text-sm font-medium text-gray-500">
+                      Due Date
+                    </th>
+                    <th className="px-4 py-3 text-sm font-medium text-gray-500">
+                      Action
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          <div className="flex items-center justify-between mt-4">
-            <div className="text-sm text-gray-500">1-10 of 100</div>
-            <div className="flex items-center space-x-2">
-              <select className="border rounded-md px-2 py-1 text-sm">
-                <option>10</option>
-                <option>25</option>
-                <option>50</option>
-              </select>
-              <Button variant="outline" size="icon" disabled>
-                <ChevronLeft size={16} />
-              </Button>
-              <Button variant="outline" size="icon">
-                <ChevronRight size={16} />
-              </Button>
+                </thead>
+                <TaskList
+                  tasks={filteredTasks}
+                  onTaskSelect={handleTaskSelect}
+                  onTaskStatusUpdate={handleTaskStatusUpdate}
+                  selectedTaskId={selectedTaskId}
+                />
+              </table>
             </div>
+
+            {/* Empty state */}
+            {filteredTasks.length === 0 && !isLoading && (
+              <div className="text-center py-12">
+                <div className="text-gray-400 mb-4">
+                  <svg
+                    className="mx-auto h-12 w-12"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No tasks found
+                </h3>
+                <p className="text-gray-500">
+                  {searchTerm || selectedStatus
+                    ? "Try adjusting your filters to see more tasks."
+                    : "You don't have any assigned tasks yet."}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Task Detail Panel */}
-          {selectedTask && selectedTaskData && (
-            <div className="absolute top-0 right-0 w-full md:w-1/2 lg:w-1/3 bg-white shadow-lg rounded-lg border z-10">
-              <div className="p-4">
-                <div className="flex items-center mb-4">
-                  <ChevronLeft
-                    size={20}
-                    className="cursor-pointer text-gray-500 hover:text-gray-700"
-                    onClick={handleCloseTaskDetail}
-                  />
-                  <h3 className="text-lg font-medium ml-2">Tasks-{selectedTaskData.id}</h3>
-                </div>
+          <TaskDetailPanel
+            task={selectedTask}
+            onClose={handleCloseTaskDetail}
+            onUpdateStatus={handleStatusUpdate}
+            isUpdating={isUpdatingTask}
+          />
+        </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm text-gray-500">Name</label>
-                    <p className="font-medium">{selectedTaskData.description}</p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm text-gray-500">Type</label>
-                    <p className="font-medium">{selectedTaskData.type}</p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm text-gray-500">Status</label>
-                    <p className="font-medium">{selectedTaskData.status}</p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm text-gray-500">Description:</label>
-                    <p className="text-sm">{selectedTaskData.details}</p>
-                  </div>
-
-                  {selectedTaskData.status === "Pending" && (
-                    <div className="flex justify-end">
-                      <Button
-                        className="bg-blue-600 hover:bg-blue-700"
-                        onClick={() => {
-                          handleCompleteTask(selectedTaskData.id)
-                          handleCloseTaskDetail()
-                        }}
-                      >
-                        Done
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+        {/* Pagination */}
+        <div className="flex items-center justify-between mt-4">
+          <div className="text-sm text-gray-500">
+            Showing {filteredTasks.length} of {totalTasks} tasks
+          </div>
+          <div className="flex items-center space-x-2">
+            <select className="border rounded-md px-2 py-1 text-sm">
+              <option>10</option>
+              <option>25</option>
+              <option>50</option>
+            </select>
+            <Button
+              variant="outline"
+              size="icon"
+              disabled={currentFilter.skip === 0}
+              onClick={() =>
+                setFilter({
+                  skip: Math.max(
+                    0,
+                    (currentFilter.skip || 0) - (currentFilter.take || 10)
+                  ),
+                })
+              }
+            >
+              <ChevronLeft size={16} />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              disabled={
+                !isLoading && filteredTasks.length < (currentFilter.take || 10)
+              }
+              onClick={() =>
+                setFilter({
+                  skip: (currentFilter.skip || 0) + (currentFilter.take || 10),
+                })
+              }
+            >
+              <ChevronRight size={16} />
+            </Button>
+          </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
