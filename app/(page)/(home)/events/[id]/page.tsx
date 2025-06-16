@@ -12,20 +12,19 @@ import { transformEventToCardData } from "@/utils/event-utils";
 import { EventHeader } from "@/components/events/event-header";
 import { EventInfo } from "@/components/events/event-info";
 import { EventActions } from "@/components/events/event-actions";
-import { EventRating } from "@/components/events/event-rating";
-import { CommentSection } from "@/components/events/comment-section";
+import { CommentSection } from "@/components/comments/comment-section";
 import { CancelConfirmationModal } from "@/components/events/cancel-confirmation-modal";
 import { Skeleton } from "@/components/ui/skeleton";
 
 /**
  * Event Detail Page Component
  * Displays detailed information about a single event
- * 
+ *
  * Features:
  * - Event details display
  * - Join/leave functionality
  * - Interest management
- * - Rating and comments (for ended events)
+ * - Rating and comments with pagination
  * - Volunteer application link
  */
 export default function EventDetailPage({ params }: EventPageProps) {
@@ -34,7 +33,7 @@ export default function EventDetailPage({ params }: EventPageProps) {
 
   const { user } = useAuth();
   const { isInterested, addInterest, removeInterest } = useInterest();
-  
+
   // Use custom hook for event data and actions
   const {
     event,
@@ -49,8 +48,6 @@ export default function EventDetailPage({ params }: EventPageProps) {
 
   // Local state for UI interactions
   const [showCancelModal, setShowCancelModal] = useState(false);
-  const [showRating, setShowRating] = useState(false);
-  const [comments] = useState<any[]>([]); // Mock comments data
 
   const saved = isInterested(id);
 
@@ -73,7 +70,9 @@ export default function EventDetailPage({ params }: EventPageProps) {
   const handleJoinClick = async () => {
     if (!user) {
       // Redirect to login with return URL
-      window.location.href = `/login?redirect=${encodeURIComponent(`/events/${id}`)}`;
+      window.location.href = `/login?redirect=${encodeURIComponent(
+        `/events/${id}`
+      )}`;
       return;
     }
 
@@ -100,15 +99,6 @@ export default function EventDetailPage({ params }: EventPageProps) {
       // Add notification here later
     }
     setShowCancelModal(false);
-  };
-
-  /**
-   * Handles rating submission
-   */
-  const handleRatingSubmit = (rating: number, feedback: string) => {
-    console.log("Rating submitted:", rating, feedback);
-    setShowRating(false);
-    // Comment rating later
   };
 
   // Loading state
@@ -144,32 +134,8 @@ export default function EventDetailPage({ params }: EventPageProps) {
           />
         </div>
 
-        {/* Rating Section - Only show if event has ended */}
-        {eventEnded && (
-          <div className="mt-8">
-            {!showRating && (
-              <Button
-                onClick={() => setShowRating(true)}
-                className="mb-6 bg-orange-500 hover:bg-orange-600"
-              >
-                Rate this event
-              </Button>
-            )}
-
-            {showRating && (
-              <EventRating
-                onClose={() => setShowRating(false)}
-                onSubmit={handleRatingSubmit}
-              />
-            )}
-
-            {/* Comments Section */}
-            <CommentSection
-              comments={comments}
-              totalComments={comments.length}
-            />
-          </div>
-        )}
+        {/* Comments Section with Integrated Rating */}
+        <CommentSection eventId={event.id} eventDateTime={event.dateTime} />
       </div>
 
       {/* Cancel Confirmation Modal */}
@@ -225,24 +191,40 @@ function EventDetailLoading() {
 /**
  * Error component for event detail page
  */
-function EventDetailError({ error, onRetry }: { error: string | null; onRetry: () => void }) {
+function EventDetailError({
+  error,
+  onRetry,
+}: {
+  error: string | null;
+  onRetry: () => void;
+}) {
   return (
     <div className="min-h-screen bg-white flex items-center justify-center">
       <div className="text-center max-w-md mx-auto px-4">
         <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-red-100 flex items-center justify-center">
-          <svg className="w-12 h-12 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          <svg
+            className="w-12 h-12 text-red-600"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+            />
           </svg>
         </div>
         <h1 className="text-2xl font-bold mb-4">
-          {error === "Event not found" ? "Event not found" : "Something went wrong"}
+          {error === "Event not found"
+            ? "Event not found"
+            : "Something went wrong"}
         </h1>
         <p className="mb-6 text-gray-600">
-          {error === "Event not found" 
+          {error === "Event not found"
             ? "The event you're looking for doesn't exist or has been removed."
-            : error || "Failed to load event details. Please try again."
-          }
+            : error || "Failed to load event details. Please try again."}
         </p>
         <div className="flex gap-4 justify-center">
           <Button onClick={onRetry} className="bg-blue-600 hover:bg-blue-700">

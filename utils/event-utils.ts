@@ -73,37 +73,84 @@ export function transformEventToCardData(event: Event): EventCardData {
 }
 
 /**
- * Formats event date for display
- * @param dateTime - Event date time string
- * @returns Formatted date object
+ * Check if an event has ended based on its date and time
  */
-export function formatEventDate(dateTime: string) {
-  const date = new Date(dateTime);
+export function hasEventEnded(eventDateTime: string): boolean {
+  const now = new Date();
+  const eventDate = new Date(eventDateTime);
 
-  return {
-    full: date.toLocaleDateString("en-US", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    }),
-    time: date.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "numeric",
-      hour12: true,
-    }),
-    month: date.toLocaleString("en-US", { month: "short" }).toUpperCase(),
-    day: date.getDate().toString(),
-  };
+  // Add some debugging
+  console.log("🕐 Event date check:", {
+    eventDateTime,
+    eventDate: eventDate.toISOString(),
+    now: now.toISOString(),
+    hasEnded: eventDate < now,
+    timeDifference: now.getTime() - eventDate.getTime(),
+    hoursDifference: (now.getTime() - eventDate.getTime()) / (1000 * 60 * 60),
+  });
+
+  return eventDate < now;
 }
 
 /**
- * Checks if an event has ended
- * @param dateTime - Event date time string
- * @returns True if event has ended
+ * Format event date for display
  */
-export function hasEventEnded(dateTime: string): boolean {
-  return new Date(dateTime) < new Date();
+export function formatEventDate(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+/**
+ * Get time until event starts/ends
+ */
+export function getTimeUntilEvent(eventDateTime: string): {
+  hasEnded: boolean;
+  timeString: string;
+  isToday: boolean;
+  isTomorrow: boolean;
+} {
+  const now = new Date();
+  const eventDate = new Date(eventDateTime);
+  const diffMs = eventDate.getTime() - now.getTime();
+  const hasEnded = diffMs < 0;
+
+  const absDiffMs = Math.abs(diffMs);
+  const days = Math.floor(absDiffMs / (1000 * 60 * 60 * 24));
+  const hours = Math.floor(
+    (absDiffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+  );
+  const minutes = Math.floor((absDiffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+  let timeString = "";
+  if (days > 0) {
+    timeString = `${days} day${days > 1 ? "s" : ""}`;
+  } else if (hours > 0) {
+    timeString = `${hours} hour${hours > 1 ? "s" : ""}`;
+  } else {
+    timeString = `${minutes} minute${minutes > 1 ? "s" : ""}`;
+  }
+
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+  const eventDateStart = new Date(
+    eventDate.getFullYear(),
+    eventDate.getMonth(),
+    eventDate.getDate()
+  );
+
+  return {
+    hasEnded,
+    timeString: hasEnded ? `${timeString} ago` : `in ${timeString}`,
+    isToday: eventDateStart.getTime() === todayStart.getTime(),
+    isTomorrow: eventDateStart.getTime() === tomorrowStart.getTime(),
+  };
 }
 
 /**
