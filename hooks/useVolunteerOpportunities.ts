@@ -25,7 +25,7 @@ const sampleVolunteerOpportunities: VolunteerOpportunity[] = Array.from(
   { length: 9 },
   (_, i) => ({
     id: `volunteer-${i + 1}`,
-    title: "Requesting Volunteer on BookFair",
+    title: `Requesting Volunteer for Event ${i + 1}`,
     image: "/icons/user.png",
     category: "Technology & Innovation",
     date: { month: "NOV", day: "22" },
@@ -33,7 +33,7 @@ const sampleVolunteerOpportunities: VolunteerOpportunity[] = Array.from(
     time: "00:00 AM - 00:00 PM",
     applicants: 20,
     description:
-      "Join us as a volunteer for our book fair! Help with setup, customer assistance, and organizing books. Sign up today!",
+      "Join us as a volunteer for this event! Help with setup, customer assistance, and organizing activities. Sign up today!",
   })
 );
 
