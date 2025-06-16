@@ -78,7 +78,7 @@ export function EventCard({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+    <div className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden transform hover:-translate-y-1">
       <Link href={`/events/${id}`} className="block">
         <div className="relative">
           <Image
@@ -91,11 +91,11 @@ export function EventCard({
               setImageSrc("/assets/constants/billboard.png");
             }}
           />
-          <div className="absolute top-4 left-4 px-3 py-1 rounded-md text-xs font-medium text-white bg-orange-500">
+          <div className="absolute top-4 left-4 px-3 py-1 rounded-md text-xs font-medium text-white bg-orange-500 shadow-sm">
             {category}
           </div>
           <button
-            className="absolute top-2 right-2 bg-white p-1 rounded-full hover:bg-gray-100 transition-colors"
+            className="absolute top-2 right-2 bg-white p-1 rounded-full hover:bg-gray-100 transition-colors shadow-md hover:shadow-lg"
             onClick={handleInterestToggle}
             disabled={isToggling}
           >

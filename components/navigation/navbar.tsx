@@ -151,9 +151,14 @@ export default function Navbar() {
                     <DropdownMenuItem asChild>
                       <RoleSwitcher triggerClassName="w-full flex items-center text-sm py-1 cursor-pointer" />
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="cursor-pointer">
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Setting</span>
+                    <DropdownMenuItem className="cursor-pointer" asChild>
+                      <Link
+                        href="/setting/account"
+                        className="flex items-center w-full"
+                      >
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Settings</span>
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
@@ -245,11 +250,11 @@ export default function Navbar() {
                 </div>
                 <RoleSwitcher />
                 <Link
-                  href="/settings"
+                  href="/setting/account"
                   className="flex items-center text-sm py-2"
                 >
                   <Settings className="mr-2 h-4 w-4" />
-                  <span>Setting</span>
+                  <span>Settings</span>
                 </Link>
                 <button
                   onClick={handleLogout}

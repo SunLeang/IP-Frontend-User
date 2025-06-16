@@ -3,7 +3,7 @@ import { ArrowDown, ArrowUp } from "lucide-react"
 
 interface StatCardProps {
   title: string
-  value: number
+  value: number | string,
   change: {
     value: number
     isIncrease: boolean

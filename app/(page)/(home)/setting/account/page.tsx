@@ -1,49 +1,36 @@
-"use client"
-import React from 'react';
-import SettingsSidebar from '../Sidebar/page';
-import ProfileSettings from '../profile/page';
-import ChangeEmail from './ChangeEmail/page';
-import Password from './SetPassword/page';
+"use client";
+
+import { useState } from "react";
+import { SettingsLayout } from "@/components/settings/settings-layout";
+import { ProfileSettings } from "@/components/settings/profile-settings";
+import { AccountSettings } from "@/components/settings/account-settings";
+import { SecuritySettings } from "@/components/settings/security-settings";
+import { NotificationSettings } from "@/components/settings/notification-settings";
+import { BillingSettings } from "@/components/settings/billing-settings";
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = React.useState('account-info');
-  
-  // Get the heading based on active tab
-  const getHeading = () => {
-    switch(activeTab) {
-      case 'account-info':
-        return 'Account Information';
-      case 'change-email':
-        return 'Change Email';
-      case 'password':
-        return 'Set Password';
+  const [activeTab, setActiveTab] = useState("profile");
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case "profile":
+        return <ProfileSettings />;
+      case "account":
+        return <AccountSettings />;
+      case "security":
+        return <SecuritySettings />;
+      case "notifications":
+        return <NotificationSettings />;
+      case "billing":
+        return <BillingSettings />;
       default:
-        return 'Account Information';
+        return <ProfileSettings />;
     }
   };
-  
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="flex">
-        <div className="w-64 min-h-screen bg-[#0A1628] shadow-xl">
-          <h1 className="text-2xl font-bold text-white p-6">
-            Account Settings
-          </h1>
-          <SettingsSidebar activeTab={activeTab} onTabChange={setActiveTab} />
-        </div>
-        
-        <div className="flex-1 p-8">
-          <div className="bg-white rounded-lg">
-            <div className="border-b border-gray-200 p-6">
-              <h2 className="text-2xl font-bold text-gray-900">{getHeading()}</h2>
-            </div>
-            
-            {activeTab === 'account-info' && <ProfileSettings />}
-            {activeTab === 'change-email' && <ChangeEmail />}
-            {activeTab === 'password' && <Password />}
-          </div>
-        </div>
-      </div>
-    </div>
+    <SettingsLayout activeTab={activeTab} onTabChange={setActiveTab}>
+      {renderContent()}
+    </SettingsLayout>
   );
 }

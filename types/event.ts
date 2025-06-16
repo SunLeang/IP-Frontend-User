@@ -34,7 +34,7 @@ export interface Event {
   category?: {
     id: string;
     name: string;
-    image?: string;
+    image?: string | null;
   };
   organizer?: {
     id: string;

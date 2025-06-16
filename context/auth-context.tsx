@@ -114,24 +114,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const fetchUser = async () => {
       try {
         const storedUser = getStoredUser();
-        if (storedUser && storedUser.currentRole) {
-          setUser(storedUser);
-          setIsAuthenticated(true);
-        } else {
-          const userData = await apiGet("/api/users/me");
-          if (userData) {
-            const validated = validateAuthResponse({
-              user: userData,
-              accessToken: localStorage.getItem("accessToken")!,
-            });
-            storeAuthData(validated);
-            setUser(validated.user);
-            setIsAuthenticated(true);
-          } else {
-            clearAuthData();
-            setUser(null);
-            setIsAuthenticated(false);
+        const accessToken = localStorage.getItem("accessToken");
+
+        if (storedUser && accessToken) {
+          // Verify token is still valid by making a test request
+          try {
+            const userData = await apiGet("/api/auth/profile");
+            if (userData) {
+              setUser(storedUser);
+              setIsAuthenticated(true);
+            } else {
+              throw new Error("Invalid token");
+            }
+          } catch (error) {
+            // Token might be expired, try refresh
+            console.log("Token validation failed, attempting refresh...");
+
+            const refreshToken = localStorage.getItem("refreshToken");
+            if (refreshToken) {
+              try {
+                const refreshResponse = await fetch(
+                  `${
+                    process.env.NEXT_PUBLIC_API_URL || "http://localhost:3100"
+                  }/api/auth/refresh`,
+                  {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ refreshToken }),
+                  }
+                );
+
+                if (refreshResponse.ok) {
+                  const data = await refreshResponse.json();
+                  const validated = validateAuthResponse(data);
+                  storeAuthData(validated);
+                  setUser(validated.user);
+                  setIsAuthenticated(true);
+                } else {
+                  throw new Error("Refresh failed");
+                }
+              } catch (refreshError) {
+                console.log("Refresh failed, clearing auth data");
+                clearAuthData();
+                setUser(null);
+                setIsAuthenticated(false);
+              }
+            } else {
+              clearAuthData();
+              setUser(null);
+              setIsAuthenticated(false);
+            }
           }
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
         }
       } catch (error) {
         console.error("Failed to initialize auth state:", error);
@@ -142,6 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsLoading(false);
       }
     };
+
     fetchUser();
   }, []);
 

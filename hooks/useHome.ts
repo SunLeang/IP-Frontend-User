@@ -104,7 +104,7 @@ export function useHome(): UseHomeReturn {
       category: {
         id: "1",
         name: "Sample Category",
-        image: null, // This should NOT affect event images
+        image: null,
       },
       organizer: {
         id: "1",
