@@ -65,12 +65,16 @@ export function VolunteerTable({ volunteers }: VolunteerTableProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Volunteers</CardTitle>
+          <CardTitle className="flex items-center">
+            <UserCheck className="h-5 w-5 mr-2 text-gray-600" />
+            Volunteers
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-gray-500">
-            <UserCheck className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>No volunteers found</p>
+          <div className="text-center py-12 text-gray-500">
+            <UserCheck className="h-16 w-16 mx-auto mb-4 opacity-30" />
+            <p className="text-lg font-medium mb-2">No volunteers found</p>
+            <p className="text-sm">Volunteers will appear here once they join this event.</p>
           </div>
         </CardContent>
       </Card>
@@ -78,27 +82,38 @@ export function VolunteerTable({ volunteers }: VolunteerTableProps) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Volunteers ({volunteerList.length})</CardTitle>
+    <Card className="shadow-sm">
+      <CardHeader className="pb-4">
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center">
+            <UserCheck className="h-5 w-5 mr-2 text-gray-600" />
+            Volunteers
+          </div>
+          <Badge variant="secondary" className="text-sm">
+            {volunteerList.length} {volunteerList.length === 1 ? 'volunteer' : 'volunteers'}
+          </Badge>
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b">
-                <th className="text-left py-3 px-4 font-medium">Name</th>
-                <th className="text-left py-3 px-4 font-medium">Gender</th>
-                <th className="text-left py-3 px-4 font-medium">Status</th>
-                <th className="text-left py-3 px-4 font-medium">
-                  Approved Date
+              <tr className="border-b border-gray-200">
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 bg-gray-50">
+                  Name
                 </th>
-                <th className="text-left py-3 px-4 font-medium">
-                  Assigned Tasks
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 bg-gray-50">
+                  Gender
+                </th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 bg-gray-50">
+                  Status
+                </th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 bg-gray-50">
+                  Approved Date
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-100">
               {volunteerList.map((volunteer, index) => {
                 // Create a unique key using multiple fallbacks
                 const uniqueKey =
@@ -109,68 +124,40 @@ export function VolunteerTable({ volunteers }: VolunteerTableProps) {
                   `volunteer-${index}`;
 
                 return (
-                  <tr key={uniqueKey} className="border-b hover:bg-gray-50">
-                    <td className="py-3 px-4">
+                  <tr 
+                    key={uniqueKey} 
+                    className="hover:bg-gray-50 transition-colors duration-150"
+                  >
+                    <td className="py-4 px-6">
                       <div className="flex items-center">
-                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
-                          <UserCheck className="h-4 w-4 text-green-600" />
+                        <div className="w-10 h-10 bg-gradient-to-br from-green-100 to-green-200 rounded-full flex items-center justify-center mr-4 shadow-sm">
+                          <UserCheck className="h-5 w-5 text-green-600" />
                         </div>
-                        <span className="font-medium">
-                          {volunteer.user?.fullName || "Unknown Volunteer"}
-                        </span>
+                        <div>
+                          <span className="font-medium text-gray-900">
+                            {volunteer.user?.fullName || "Unknown Volunteer"}
+                          </span>
+                        </div>
                       </div>
                     </td>
-                    <td className="py-3 px-4">
-                      <span className="text-gray-600">
+                    <td className="py-4 px-6">
+                      <span className="text-gray-600 capitalize">
                         {volunteer.user?.gender || "Not specified"}
                       </span>
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-4 px-6">
                       <Badge
-                        className={getStatusColor(
+                        className={`${getStatusColor(
                           volunteer.status || "unknown"
-                        )}
+                        )} font-medium`}
                       >
                         {volunteer.status || "Unknown"}
                       </Badge>
                     </td>
-                    <td className="py-3 px-4 text-gray-600">
-                      {formatDate(volunteer.approvedAt)}
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="space-y-1">
-                        {volunteer.assignedTasks &&
-                        Array.isArray(volunteer.assignedTasks) &&
-                        volunteer.assignedTasks.length > 0 ? (
-                          volunteer.assignedTasks.map(
-                            (assignment, taskIndex) => {
-                              // Create unique key for tasks
-                              const taskKey =
-                                assignment.id ||
-                                `${assignment.task?.name}-${taskIndex}` ||
-                                `task-${uniqueKey}-${taskIndex}`;
-
-                              return (
-                                <div key={taskKey} className="text-sm">
-                                  <span className="font-medium">
-                                    {assignment.task?.name || "Unknown Task"}
-                                  </span>
-                                  <Badge
-                                    className="ml-2 text-xs"
-                                    variant="outline"
-                                  >
-                                    {assignment.status || "Unknown"}
-                                  </Badge>
-                                </div>
-                              );
-                            }
-                          )
-                        ) : (
-                          <span className="text-gray-500 text-sm">
-                            No tasks assigned
-                          </span>
-                        )}
-                      </div>
+                    <td className="py-4 px-6">
+                      <span className="text-gray-600 font-medium">
+                        {formatDate(volunteer.approvedAt)}
+                      </span>
                     </td>
                   </tr>
                 );
@@ -178,6 +165,27 @@ export function VolunteerTable({ volunteers }: VolunteerTableProps) {
             </tbody>
           </table>
         </div>
+
+        {/* Optional: Add summary footer */}
+        {volunteerList.length > 0 && (
+          <div className="mt-6 pt-4 border-t border-gray-100">
+            <div className="flex items-center justify-between text-sm text-gray-600">
+              <span>
+                Total: {volunteerList.length} {volunteerList.length === 1 ? 'volunteer' : 'volunteers'}
+              </span>
+              <div className="flex items-center space-x-4">
+                <span className="flex items-center">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                  Approved: {volunteerList.filter(v => v.status?.toLowerCase() === 'approved').length}
+                </span>
+                <span className="flex items-center">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></div>
+                  Pending: {volunteerList.filter(v => v.status?.toLowerCase() === 'pending').length}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
