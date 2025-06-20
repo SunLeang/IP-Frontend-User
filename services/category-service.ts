@@ -1,21 +1,24 @@
 import { apiGet } from "./api";
-import {
-  Category,
-  CategoryEvent,
-  CategoryWithEventsResponse,
-} from "@/types/category";
 
-/**
- * Category Service
- * Handles all category-related API operations
- */
+export interface Category {
+  id: string;
+  name: string;
+  image?: string;
+}
 
-// Re-export types for convenience
-export type {
-  Category,
-  CategoryEvent,
-  CategoryWithEventsResponse,
-} from "@/types/category";
+export interface CategoryEvent {
+  id: string;
+  name: string;
+  description: string;
+  profileImage?: string;
+  dateTime: string;
+  locationDesc: string;
+  status: string;
+  _count?: {
+    interestedUsers?: number;
+    attendingUsers?: number;
+  };
+}
 
 /**
  * Fetches all categories for general use (filtering, navigation, etc.)
@@ -23,9 +26,28 @@ export type {
  */
 export async function getCategories(): Promise<Category[]> {
   try {
-    console.log("Fetching all categories...");
+    console.log("📡 Fetching all categories...");
     const response = await apiGet("/api/event-categories");
-    return Array.isArray(response) ? response : response?.data || [];
+    const categories = Array.isArray(response)
+      ? response
+      : response?.data || [];
+
+    // Enhanced logging for MinIO category images
+    console.log("📊 CATEGORIES API RESPONSE:", {
+      totalCategories: categories.length,
+      hasData: !!response.data,
+      isArray: Array.isArray(categories),
+    });
+
+    categories.forEach((category: Category, index: number) => {
+      console.log(`🏷️ CATEGORY ${index + 1}: "${category.name}"`, {
+        id: category.id,
+        image: category.image,
+        isMinIOImage: category.image?.includes("localhost:9000"),
+      });
+    });
+
+    return categories;
   } catch (error) {
     console.error("Failed to fetch categories:", error);
     return [];
@@ -33,73 +55,42 @@ export async function getCategories(): Promise<Category[]> {
 }
 
 /**
- * Fetches a single category by ID
- * @param id - Category ID to fetch
- * @returns Promise resolving to category data or null if not found
+ * Fetches a specific category with its events
+ * @param categoryId - The ID of the category to fetch
+ * @returns Promise resolving to category with events
  */
-export async function getCategoryById(id: string): Promise<Category | null> {
+export async function getCategoryWithEvents(categoryId: string): Promise<{
+  category: Category | null;
+  events: CategoryEvent[];
+}> {
   try {
-    console.log(`Fetching category with ID: ${id}`);
-    const response = await apiGet(`/api/event-categories/${id}`);
-    return response;
-  } catch (error) {
-    console.error(`Failed to fetch category with id ${id}:`, error);
-    return null;
-  }
-}
+    console.log(`📡 Fetching category with events: ${categoryId}`);
 
-/**
- * Fetches all events belonging to a specific category
- * @param categoryId - The ID of the category
- * @returns Promise resolving to array of events
- */
-export async function getEventsByCategory(
-  categoryId: string
-): Promise<CategoryEvent[]> {
-  try {
-    console.log(`Fetching events for category: ${categoryId}`);
-    const response = await apiGet(
-      `/api/events?categoryId=${categoryId}&status=PUBLISHED`
-    );
+    const response = await apiGet(`/api/event-categories/${categoryId}/events`);
 
-    // Handle different response structures
-    if (Array.isArray(response)) {
-      return response;
-    } else if (response?.data && Array.isArray(response.data)) {
-      return response.data;
+    const category = response.category || null;
+    const events = response.events || [];
+
+    if (category) {
+      console.log(`🏷️ CATEGORY WITH EVENTS: "${category.name}"`, {
+        id: category.id,
+        image: category.image,
+        eventsCount: events.length,
+        isMinIOImage: category.image?.includes("localhost:9000"),
+      });
+
+      events.forEach((event: CategoryEvent, index: number) => {
+        console.log(`📅 CATEGORY EVENT ${index + 1}: "${event.name}"`, {
+          id: event.id,
+          profileImage: event.profileImage,
+          isMinIOProfile: event.profileImage?.includes("localhost:9000"),
+        });
+      });
     }
-
-    return [];
-  } catch (error) {
-    console.error(`Failed to fetch events for category ${categoryId}:`, error);
-    return [];
-  }
-}
-
-/**
- * Fetches category and its events in parallel for better performance
- * Used primarily by category detail pages
- * @param categoryId - The ID of the category
- * @returns Promise resolving to object containing category and events
- */
-export async function getCategoryWithEvents(
-  categoryId: string
-): Promise<CategoryWithEventsResponse> {
-  try {
-    console.log(`Fetching category ${categoryId} with events...`);
-
-    // Fetch category and events in parallel for better performance
-    const [category, events] = await Promise.all([
-      getCategoryById(categoryId),
-      getEventsByCategory(categoryId),
-    ]);
 
     return { category, events };
   } catch (error) {
-    console.error(
-      `Failed to fetch category and events for ${categoryId}:`,
-      error
-    );
+    console.error(`Failed to fetch category ${categoryId} with events:`, error);
     return { category: null, events: [] };
   }
 }

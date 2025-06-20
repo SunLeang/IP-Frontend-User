@@ -1,13 +1,47 @@
 import { apiGet, apiPost, apiDelete } from "./api";
-import { Event, EventsFilterParams } from "@/types/event";
+import { EventStatus } from "@/types/event";
+
+export interface Event {
+  id: string;
+  name: string;
+  description: string;
+  profileImage?: string;
+  coverImage?: string;
+  dateTime: string;
+  locationDesc: string;
+  locationImage?: string;
+  status: EventStatus;
+  acceptingVolunteers: boolean;
+  categoryId: string;
+  organizerId: string;
+  createdAt: string;
+  updatedAt: string;
+  category?: {
+    id: string;
+    name: string;
+    image?: string;
+  };
+  organizer?: {
+    id: string;
+    fullName: string;
+  };
+  _count?: {
+    interestedUsers?: number;
+    attendingUsers?: number;
+    volunteers?: number;
+  };
+}
+
+export interface EventsFilterParams {
+  categoryId?: string;
+  status?: EventStatus; // ✅ Now properly typed with the enum
+  acceptingVolunteers?: boolean;
+}
 
 /**
  * Event Service
  * Handles all event-related API operations
  */
-
-// Re-export types for convenience
-export type { Event, EventsFilterParams } from "@/types/event";
 
 /**
  * Fetches events with optional filtering
@@ -16,42 +50,42 @@ export type { Event, EventsFilterParams } from "@/types/event";
  */
 export async function getEvents(params?: EventsFilterParams): Promise<Event[]> {
   try {
-    console.log("Fetching events with params:", params);
+    const queryString = params
+      ? `?${new URLSearchParams(
+          Object.entries(params).reduce((acc, [key, value]) => {
+            if (value !== undefined) {
+              acc[key] = String(value);
+            }
+            return acc;
+          }, {} as Record<string, string>)
+        ).toString()}`
+      : "";
 
-    let queryString = "";
-    if (params) {
-      const searchParams = new URLSearchParams();
-      if (params.categoryId)
-        searchParams.append("categoryId", params.categoryId);
-      if (params.status) searchParams.append("status", params.status);
-      if (params.acceptingVolunteers !== undefined) {
-        searchParams.append(
-          "acceptingVolunteers",
-          params.acceptingVolunteers.toString()
-        );
-      }
-      queryString = `?${searchParams.toString()}`;
-    }
+    console.log(`📡 Fetching events from: /api/events${queryString}`);
 
     const response = await apiGet(`/api/events${queryString}`);
-    console.log("RAW API RESPONSE FOR EVENTS:", response);
-
-    // Handle different response structures
     const events = response.data || response || [];
 
+    // Enhanced logging for MinIO images
+    console.log("📊 EVENTS API RESPONSE:", {
+      totalEvents: events.length,
+      hasData: !!response.data,
+      isArray: Array.isArray(events),
+    });
+
     // Log each event's image data specifically
-    console.log(
-      "EVENTS IMAGE DATA:",
-      events.map((e: any, index: number) => ({
-        index,
-        id: e.id,
-        name: e.name,
-        profileImage: e.profileImage,
-        coverImage: e.coverImage,
-        category: e.category?.name,
-        categoryImage: e.category?.image,
-      }))
-    );
+    events.forEach((event: Event, index: number) => {
+      console.log(`📅 EVENT ${index + 1}: "${event.name}"`, {
+        id: event.id,
+        profileImage: event.profileImage,
+        coverImage: event.coverImage,
+        locationImage: event.locationImage,
+        category: event.category?.name,
+        categoryImage: event.category?.image,
+        isMinIOProfile: event.profileImage?.includes("localhost:9000"),
+        isMinIOCover: event.coverImage?.includes("localhost:9000"),
+      });
+    });
 
     return events;
   } catch (error) {
@@ -67,8 +101,22 @@ export async function getEvents(params?: EventsFilterParams): Promise<Event[]> {
  */
 export async function getEventById(id: string): Promise<Event | null> {
   try {
-    console.log(`Fetching event with ID: ${id}`);
-    return await apiGet(`/api/events/${id}`);
+    console.log(`📡 Fetching event by ID: ${id}`);
+
+    const event = await apiGet(`/api/events/${id}`);
+
+    if (event) {
+      console.log(`📅 SINGLE EVENT RESPONSE: "${event.name}"`, {
+        id: event.id,
+        profileImage: event.profileImage,
+        coverImage: event.coverImage,
+        locationImage: event.locationImage,
+        isMinIOProfile: event.profileImage?.includes("localhost:9000"),
+        isMinIOCover: event.coverImage?.includes("localhost:9000"),
+      });
+    }
+
+    return event;
   } catch (error) {
     console.error(`Failed to fetch event with id ${id}:`, error);
     return null;

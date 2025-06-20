@@ -13,7 +13,7 @@ interface FileUploadStepProps {
   isDragging: boolean;
   onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onDragOver: (e: React.DragEvent) => void;
-  onDragLeave: () => void;
+  onDragLeave: (e: React.DragEvent) => void; 
   onDrop: (e: React.DragEvent) => void;
   onRemoveFile: (fileName: string) => void;
   onBack: () => void;
@@ -45,13 +45,12 @@ export function FileUploadStep({
             <X className="h-5 w-5 text-gray-400" />
           </button>
         </div>
-
         <div
           className={`border-2 border-dashed rounded-lg p-8 text-center mt-4 ${
             isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300"
           }`}
           onDragOver={onDragOver}
-          onDragLeave={onDragLeave}
+          onDragLeave={onDragLeave} // ✅ This will now receive the event parameter automatically
           onDrop={onDrop}
         >
           <div className="flex flex-col items-center">
@@ -59,86 +58,71 @@ export function FileUploadStep({
             <p className="mb-2 font-medium">
               Drop files here or click to upload
             </p>
-            <p className="text-sm text-gray-500">PDF, DOC, DOCX (max 5MB)</p>
+            <p className="text-sm text-gray-500 mb-4">
+              Supports: PDF, DOC, DOCX (Max 10MB)
+            </p>
             <input
               type="file"
-              id="file-upload"
-              className="hidden"
-              onChange={onFileUpload}
               accept=".pdf,.doc,.docx"
+              onChange={onFileUpload}
+              className="hidden"
+              id="file-upload"
             />
             <label
               htmlFor="file-upload"
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"
+              className="bg-blue-500 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-blue-600"
             >
-              Upload Files
+              Select Files
             </label>
           </div>
         </div>
 
+        {/* File List */}
         {files.length > 0 && (
-          <div className="mt-4 space-y-4">
+          <div className="mt-4 space-y-2">
             {files.map((file, index) => (
-              <div key={index} className="bg-gray-100 rounded-md p-3">
-                <div className="flex items-start">
-                  <div className="bg-red-100 text-red-800 p-1 rounded mr-3">
-                    <span className="text-xs font-bold">PDF</span>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{file.name}</p>
-                    <div className="flex items-center text-xs text-gray-500">
-                      <span>
-                        {Math.round(file.size / 1024)} KB of{" "}
-                        {Math.round(file.size / 1024)} KB
-                      </span>
-                      {!file.completed && (
-                        <>
-                          <span className="mx-2">•</span>
-                          <span>Uploading...</span>
-                        </>
-                      )}
-                      {file.completed && (
-                        <>
-                          <span className="mx-2">•</span>
-                          <span className="flex items-center">
-                            <span className="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
-                            Completed
-                          </span>
-                        </>
-                      )}
+              <div
+                key={index}
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+              >
+                <div className="flex-1">
+                  <p className="font-medium">{file.name}</p>
+                  <p className="text-sm text-gray-500">
+                    {(file.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {file.completed ? (
+                    <span className="text-green-500 text-sm">✓ Uploaded</span>
+                  ) : (
+                    <div className="w-20 bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-blue-500 h-2 rounded-full transition-all"
+                        style={{ width: `${file.progress}%` }}
+                      />
                     </div>
-                    {!file.completed && (
-                      <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
-                        <div
-                          className="bg-blue-600 h-1.5 rounded-full"
-                          style={{ width: `${file.progress}%` }}
-                        ></div>
-                      </div>
-                    )}
-                  </div>
+                  )}
                   <button
                     onClick={() => onRemoveFile(file.name)}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-red-500 hover:text-red-700"
                   >
-                    <X className="h-5 w-5" />
+                    <X className="h-4 w-4" />
                   </button>
                 </div>
               </div>
             ))}
           </div>
         )}
-      </div>
 
-      <div className="flex space-x-4 mt-6">
-        <Button variant="outline" onClick={onBack} className="w-1/2 py-6">
-          Back
-        </Button>
-        <Button
-          onClick={onNext}
-          className="w-1/2 py-6 bg-green-500 hover:bg-green-600"
-        >
-          Next
-        </Button>
+        {/* Navigation Buttons */}
+        <div className="flex justify-between mt-6">
+          <Button variant="outline" onClick={onBack}>
+            Back
+          </Button>
+          <Button onClick={onNext} disabled={files.length === 0}>
+            Next
+          </Button>
+        </div>
       </div>
     </div>
   );

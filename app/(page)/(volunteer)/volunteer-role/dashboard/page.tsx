@@ -15,6 +15,7 @@ export default function VolunteerRoleDashboardPage() {
   const {
     stats,
     events,
+    currentEvent,
     isLoading: dashboardLoading,
     error,
     refetch,
@@ -53,8 +54,13 @@ export default function VolunteerRoleDashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Event Banner */}
-      <VolunteerDashboardEventBanner />
+      {/* Event Banner - Enhanced with proper event data */}
+      <VolunteerDashboardEventBanner
+        eventName={currentEvent?.event?.name}
+        eventImage={
+          currentEvent?.event?.coverImage || currentEvent?.event?.profileImage
+        }
+      />
 
       {/* Dashboard Content */}
       <div className="container mx-auto px-4 py-6">
@@ -63,11 +69,40 @@ export default function VolunteerRoleDashboardPage() {
         {/* Stats Cards - Now fetches from API directly */}
         <VolunteerDashboardStatsGrid fallbackStats={stats} />
 
-        {/* Download Report Button */}
+        {/* Download Actions */}
         <VolunteerDashboardActions onDownloadReport={handleDownloadReport} />
 
-        {/* Events Table */}
-        <EventTable events={events} />
+        {/* Events Table - Fixed props */}
+        <div className="mt-6">
+          <h3 className="text-lg font-semibold mb-4">My Volunteer Events</h3>
+          {events && events.length > 0 ? (
+            <EventTable events={events} />
+          ) : (
+            <div className="bg-white rounded-lg border p-8 text-center">
+              <div className="text-gray-500">
+                <svg
+                  className="h-12 w-12 mx-auto mb-4 opacity-50"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+                <p className="text-lg font-medium mb-2">
+                  No volunteer events found
+                </p>
+                <p className="text-sm">
+                  Your volunteer events will appear here once you're approved.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
