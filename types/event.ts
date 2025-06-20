@@ -55,14 +55,11 @@ export interface EventCardData {
   title: string;
   image: string;
   category: string;
-  date: {
-    month: string;
-    day: string;
-  };
+  date: { month: string; day: string };
   venue: string;
   time: string;
-  price: number;
   interested: number;
+  attending: number;
 }
 
 /**

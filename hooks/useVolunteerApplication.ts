@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Event } from "@/types/event";
 import { getEventById } from "@/services/event-service";
 import { applyForVolunteer } from "@/services/volunteer-service";
@@ -28,7 +28,11 @@ interface UseVolunteerApplicationReturn {
   files: FileItem[];
   setFiles: React.Dispatch<React.SetStateAction<FileItem[]>>;
   isSubmitting: boolean;
-  submitApplication: () => Promise<boolean>;
+  submitApplication: (applicationData?: {
+    eventId: string;
+    whyVolunteer: string;
+    cvPath: string;
+  }) => Promise<boolean>;
   prefillUserData: (user: any) => void;
   validateStep: (step: number) => { isValid: boolean; errorMessage?: string };
 }
@@ -60,7 +64,7 @@ export function useVolunteerApplication(
   /**
    * Fetches event data for the application
    */
-  const fetchEvent = async () => {
+  const fetchEvent = useCallback(async () => {
     if (!isAuthenticated) return;
 
     setIsLoading(true);
@@ -84,12 +88,12 @@ export function useVolunteerApplication(
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isAuthenticated, eventId]);
 
   /**
    * Prefills form data with user information
    */
-  const prefillUserData = (user: any) => {
+  const prefillUserData = useCallback((user: any) => {
     if (user) {
       setFormData((prevData) => ({
         ...prevData,
@@ -101,96 +105,108 @@ export function useVolunteerApplication(
 
       console.log("Pre-filled form with user data");
     }
-  };
+  }, []);
 
   /**
    * Validates form data for a specific step
    */
-  const validateStep = (
-    step: number
-  ): { isValid: boolean; errorMessage?: string } => {
-    switch (step) {
-      case 1:
-        if (
-          !formData.fullName ||
-          !formData.gender ||
-          !formData.age ||
-          !formData.status
-        ) {
-          return {
-            isValid: false,
-            errorMessage: "Please fill in all required fields",
-          };
-        }
-        return { isValid: true };
+  const validateStep = useCallback(
+    (step: number): { isValid: boolean; errorMessage?: string } => {
+      switch (step) {
+        case 1:
+          if (
+            !formData.fullName ||
+            !formData.gender ||
+            !formData.age ||
+            !formData.status
+          ) {
+            return {
+              isValid: false,
+              errorMessage: "Please fill in all required fields",
+            };
+          }
+          return { isValid: true };
 
-      case 2:
-        if (files.length === 0) {
-          return {
-            isValid: false,
-            errorMessage: "Please upload your CV",
-          };
-        }
-        return { isValid: true };
+        case 2:
+          if (files.length === 0) {
+            return {
+              isValid: false,
+              errorMessage: "Please upload your CV",
+            };
+          }
+          return { isValid: true };
 
-      case 3:
-        if (!formData.reason || !formData.reason.trim()) {
-          return {
-            isValid: false,
-            errorMessage: "Please explain why you want to volunteer",
-          };
-        }
-        if (files.length === 0) {
-          return {
-            isValid: false,
-            errorMessage: "Please upload your CV",
-          };
-        }
-        return { isValid: true };
+        case 3:
+          if (!formData.reason || !formData.reason.trim()) {
+            return {
+              isValid: false,
+              errorMessage: "Please explain why you want to volunteer",
+            };
+          }
+          if (files.length === 0) {
+            return {
+              isValid: false,
+              errorMessage: "Please upload your CV",
+            };
+          }
+          return { isValid: true };
 
-      default:
-        return { isValid: true };
-    }
-  };
+        default:
+          return { isValid: true };
+      }
+    },
+    [formData, files]
+  );
 
   /**
    * Submits the volunteer application
    */
-  const submitApplication = async (): Promise<boolean> => {
-    try {
-      setIsSubmitting(true);
+  const submitApplication = useCallback(
+    async (applicationData?: {
+      eventId: string;
+      whyVolunteer: string;
+      cvPath: string;
+    }): Promise<boolean> => {
+      try {
+        setIsSubmitting(true);
 
-      // Final validation
-      const validation = validateStep(3);
-      if (!validation.isValid) {
-        throw new Error(validation.errorMessage);
+        console.log("Submitting volunteer application...");
+
+        // Use provided data or fallback to hook data
+        const submitData = applicationData || {
+          eventId,
+          whyVolunteer: formData.reason,
+          cvPath: `/uploads/cv/${files[0]?.name || "cv.pdf"}`,
+        };
+
+        await applyForVolunteer(submitData);
+
+        console.log("Volunteer application submitted successfully");
+        return true;
+      } catch (error: any) {
+        console.error("Error submitting volunteer application:", error);
+        throw error;
+      } finally {
+        setIsSubmitting(false);
       }
-
-      console.log("Submitting volunteer application...");
-
-      const cvPath = `/uploads/cv/${files[0].name}`;
-      await applyForVolunteer({
-        eventId,
-        whyVolunteer: formData.reason,
-        cvPath: cvPath,
-      });
-
-      console.log("Volunteer application submitted successfully");
-      return true;
-    } catch (error: any) {
-      console.error("Error submitting volunteer application:", error);
-      throw error;
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    },
+    [eventId, formData.reason, files]
+  );
 
   // Fetch event when authenticated and eventId available
   useEffect(() => {
     if (isAuthenticated && eventId) {
       fetchEvent();
     }
-  }, [eventId, isAuthenticated]);
+  }, [fetchEvent, eventId, isAuthenticated]);
+
+  // ✅ Memoize setFiles to prevent recreation on every render
+  const memoizedSetFiles = useCallback(
+    (value: React.SetStateAction<FileItem[]>) => {
+      setFiles(value);
+    },
+    []
+  );
 
   return {
     event,
@@ -199,7 +215,7 @@ export function useVolunteerApplication(
     formData,
     setFormData,
     files,
-    setFiles,
+    setFiles: memoizedSetFiles,
     isSubmitting,
     submitApplication,
     prefillUserData,

@@ -1,5 +1,3 @@
-import { MoreVertical } from "lucide-react";
-
 interface EventTableProps {
   events: Array<{
     id: number;

@@ -6,32 +6,63 @@ import { Event, EventCardData, EventStatus } from "@/types/event";
  */
 
 /**
- * Gets a valid image source, with fallback only when truly needed
- * @param src - Image source URL from API
- * @returns Valid image URL or fallback only if src is null/undefined/empty
+ * Gets a valid image source from MinIO or fallback
+ * @param src - Image source URL from API (should be MinIO URL)
+ * @returns Valid image URL or fallback
  */
 export function getValidImageSrc(src: string | null | undefined): string {
-  // Be very specific about what constitutes an invalid image
+  // Check if we have a valid MinIO URL
   if (
-    src === null ||
-    src === undefined ||
-    src === "" ||
-    src === "null" ||
-    src === "undefined"
+    src &&
+    (src.startsWith("http://localhost:9000/") || src.startsWith("https://"))
   ) {
-    console.log("No valid image source, using fallback for:", src);
-    return "/assets/constants/billboard.png";
+    console.log("Using MinIO image source:", src);
+    return src;
   }
 
-  // Handle relative paths without leading slash
-  if (src && !src.startsWith("/") && !src.startsWith("http")) {
-    console.log(`Fixing relative path: ${src} -> /${src}`);
+  // Check if it's a relative MinIO path that needs base URL
+  if (src && (src.startsWith("images/") || src.startsWith("thumbnails/"))) {
+    const minioBaseUrl =
+      process.env.NEXT_PUBLIC_MINIO_URL || "http://localhost:9000";
+    const fullUrl = `${minioBaseUrl}/${src}`;
+    console.log("Converting relative MinIO path:", src, "->", fullUrl);
+    return fullUrl;
+  }
+
+  // For any other valid-looking paths
+  if (src && src.trim() !== "" && src !== "null" && src !== "undefined") {
+    // Handle other absolute paths
+    if (src.startsWith("/") || src.startsWith("http")) {
+      console.log("Using provided image source:", src);
+      return src;
+    }
+
+    // Handle relative paths
+    console.log(`Converting relative path: ${src} -> /${src}`);
     return `/${src}`;
   }
 
-  // If we have any other value, use it (let the browser handle invalid URLs)
-  console.log("Using API image source:", src);
-  return src;
+  // Only use fallback when absolutely necessary
+  console.log("No valid image source, using fallback for:", src);
+  return "/assets/constants/billboard.png";
+}
+
+/**
+ * ✅ FIXED: Format event date to match EventCardData type
+ */
+export function formatEventDateForCard(dateString: string): {
+  month: string;
+  day: string;
+} {
+  try {
+    const date = new Date(dateString);
+    return {
+      month: date.toLocaleDateString("en-US", { month: "short" }),
+      day: date.toLocaleDateString("en-US", { day: "2-digit" }),
+    };
+  } catch {
+    return { month: "TBD", day: "00" };
+  }
 }
 
 /**
@@ -40,35 +71,16 @@ export function getValidImageSrc(src: string | null | undefined): string {
  * @returns Transformed event card data
  */
 export function transformEventToCardData(event: Event): EventCardData {
-  const eventDate = new Date(event.dateTime);
-
-  const imageSource = event.profileImage || event.coverImage;
-  console.log(`Transforming event "${event.name}":`, {
-    profileImage: event.profileImage,
-    coverImage: event.coverImage,
-    selectedSource: imageSource,
-    finalImage: getValidImageSrc(imageSource),
-  });
-
   return {
     id: event.id,
     title: event.name,
-    image: getValidImageSrc(imageSource),
-    category: event.category?.name || "Uncategorized",
-    date: {
-      month: eventDate
-        .toLocaleString("en-US", { month: "short" })
-        .toUpperCase(),
-      day: eventDate.getDate().toString(),
-    },
+    image: getValidImageSrc(event.profileImage), // Use MinIO profile image
+    category: event.category?.name || "General",
+    date: formatEventDateForCard(event.dateTime), // ✅ FIXED: Use proper date format
     venue: event.locationDesc,
-    time: eventDate.toLocaleString("en-US", {
-      hour: "numeric",
-      minute: "numeric",
-      hour12: true,
-    }),
-    price: 0,
+    time: formatEventTime(event.dateTime),
     interested: event._count?.interestedUsers || 0,
+    attending: event._count?.attendingUsers || 0,
   };
 }
 
@@ -76,81 +88,59 @@ export function transformEventToCardData(event: Event): EventCardData {
  * Check if an event has ended based on its date and time
  */
 export function hasEventEnded(eventDateTime: string): boolean {
-  const now = new Date();
-  const eventDate = new Date(eventDateTime);
-
-  // Add some debugging
-  console.log("🕐 Event date check:", {
-    eventDateTime,
-    eventDate: eventDate.toISOString(),
-    now: now.toISOString(),
-    hasEnded: eventDate < now,
-    timeDifference: now.getTime() - eventDate.getTime(),
-    hoursDifference: (now.getTime() - eventDate.getTime()) / (1000 * 60 * 60),
-  });
-
-  return eventDate < now;
+  return new Date(eventDateTime) < new Date();
 }
 
 /**
- * Format event date for display
+ * ✅ RENAMED: Format event date for display (string format)
  */
 export function formatEventDate(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "2-digit",
+    });
+  } catch {
+    return "TBD";
+  }
 }
 
 /**
- * Get time until event starts/ends
+ * Format event time for display
  */
-export function getTimeUntilEvent(eventDateTime: string): {
-  hasEnded: boolean;
-  timeString: string;
-  isToday: boolean;
-  isTomorrow: boolean;
-} {
-  const now = new Date();
-  const eventDate = new Date(eventDateTime);
-  const diffMs = eventDate.getTime() - now.getTime();
-  const hasEnded = diffMs < 0;
-
-  const absDiffMs = Math.abs(diffMs);
-  const days = Math.floor(absDiffMs / (1000 * 60 * 60 * 24));
-  const hours = Math.floor(
-    (absDiffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
-  );
-  const minutes = Math.floor((absDiffMs % (1000 * 60 * 60)) / (1000 * 60));
-
-  let timeString = "";
-  if (days > 0) {
-    timeString = `${days} day${days > 1 ? "s" : ""}`;
-  } else if (hours > 0) {
-    timeString = `${hours} hour${hours > 1 ? "s" : ""}`;
-  } else {
-    timeString = `${minutes} minute${minutes > 1 ? "s" : ""}`;
+export function formatEventTime(dateString: string): string {
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  } catch {
+    return "TBD";
   }
+}
 
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
-  const eventDateStart = new Date(
-    eventDate.getFullYear(),
-    eventDate.getMonth(),
-    eventDate.getDate()
-  );
+/**
+ * Get event cover image (for detail pages)
+ */
+export function getEventCoverImage(event: Event): string {
+  return getValidImageSrc(event.coverImage);
+}
 
-  return {
-    hasEnded,
-    timeString: hasEnded ? `${timeString} ago` : `in ${timeString}`,
-    isToday: eventDateStart.getTime() === todayStart.getTime(),
-    isTomorrow: eventDateStart.getTime() === tomorrowStart.getTime(),
-  };
+/**
+ * Get event location image
+ */
+export function getEventLocationImage(event: Event): string {
+  return getValidImageSrc(event.locationImage);
+}
+
+/**
+ * Get category image
+ */
+export function getCategoryImage(category: { image?: string }): string {
+  return getValidImageSrc(category.image);
 }
 
 /**

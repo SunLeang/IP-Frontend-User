@@ -2,7 +2,10 @@ import { useState, useEffect } from "react";
 import { Category, getCategories } from "@/services/category-service";
 import { Event, getEvents } from "@/services/event-service";
 import { EventStatus } from "@/types/event";
-import { transformEventToCardData } from "@/utils/event-utils";
+import {
+  transformEventToCardData,
+  getValidImageSrc,
+} from "@/utils/event-utils";
 
 /**
  * Return type for useHome hook
@@ -16,29 +19,30 @@ interface UseHomeReturn {
 }
 
 /**
- * Helper function to ensure image paths are valid for Next.js
+ * Helper function to process category images from MinIO
  */
-function normalizeImagePath(imagePath: string | null | undefined): string {
+function processCategoryImage(imagePath: string | null | undefined): string {
   if (
     !imagePath ||
     imagePath.trim() === "" ||
     imagePath === "null" ||
     imagePath === "undefined"
   ) {
-    return ""; // Return empty string, let components handle fallback
+    console.log("No category image, using fallback");
+    return "/assets/images/default-category.png";
   }
 
-  // If it's already absolute or external, return as-is
+  // Handle MinIO URLs
   if (
-    imagePath.startsWith("/") ||
-    imagePath.startsWith("http") ||
-    imagePath.startsWith("data:")
+    imagePath.startsWith("http://localhost:9000/") ||
+    imagePath.startsWith("https://")
   ) {
+    console.log("Using MinIO category image:", imagePath);
     return imagePath;
   }
 
-  // If it's relative, add leading slash
-  return `/${imagePath}`;
+  // Handle other cases
+  return getValidImageSrc(imagePath);
 }
 
 /**
@@ -57,11 +61,26 @@ export function useHome(): UseHomeReturn {
       try {
         const [categoriesData, eventsData] = await Promise.all([
           getCategories(),
-          getEvents({ status: "PUBLISHED" }),
+          getEvents({ status: EventStatus.PUBLISHED }),
         ]);
 
         console.log("🏠 HOME: Raw categories from API:", categoriesData);
         console.log("🏠 HOME: Raw events from API:", eventsData);
+
+        // Log specific image data
+        categoriesData.forEach((cat: Category, index: number) => {
+          console.log(
+            `🏷️ Category ${index}: ${cat.name} - Image: ${cat.image}`
+          );
+        });
+
+        eventsData.forEach((event: Event, index: number) => {
+          console.log(`📅 Event ${index}: ${event.name} - Images:`, {
+            profile: event.profileImage,
+            cover: event.coverImage,
+            location: event.locationImage,
+          });
+        });
 
         setCategories(categoriesData);
         setPublishedEvents(Array.isArray(eventsData) ? eventsData : []);
@@ -84,63 +103,27 @@ export function useHome(): UseHomeReturn {
     { id: "4", name: "Songkran", image: "/assets/images/songkran.png" },
   ];
 
-  const fallbackEvents: Event[] = [
-    {
-      id: "fallback-1",
-      name: "Sample Event (No Image)",
-      description:
-        "This is a sample event with no image - should show billboard.png",
-      profileImage: null, // No image - should show fallback
-      coverImage: null,
-      dateTime: new Date().toISOString(),
-      locationDesc: "Sample Venue",
-      locationImage: null,
-      status: EventStatus.PUBLISHED,
-      acceptingVolunteers: true,
-      categoryId: "1",
-      organizerId: "1",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      category: {
-        id: "1",
-        name: "Sample Category",
-        image: null,
-      },
-      organizer: {
-        id: "1",
-        fullName: "Sample Organizer",
-      },
-      _count: {
-        interestedUsers: 5,
-        attendingUsers: 2,
-        volunteers: 1,
-      },
-    },
-  ];
-
   // Process data - prioritize API data
   const displayCategories =
     categories.length > 0 ? categories : fallbackCategories;
-  const displayEvents =
-    publishedEvents.length > 0 ? publishedEvents : fallbackEvents;
+  const displayEvents = publishedEvents.length > 0 ? publishedEvents : [];
 
   console.log("🏠 HOME: Processing categories:", displayCategories.length);
   console.log("🏠 HOME: Processing events:", displayEvents.length);
 
-  // Process categories separately from events
+  // Process categories with MinIO image handling
   const transformedCategories = displayCategories.map((cat) => {
-    const normalizedImage = normalizeImagePath(cat.image);
-    console.log(
-      `🏷️ CATEGORY "${cat.name}": ${cat.image} -> ${normalizedImage}`
-    );
+    const processedImage = processCategoryImage(cat.image);
+    console.log(`🏷️ CATEGORY "${cat.name}": ${cat.image} -> ${processedImage}`);
+
     return {
       id: cat.id,
       title: cat.name,
-      img: normalizedImage,
+      img: processedImage,
     };
   });
 
-  // Process events independently
+  // Process events with MinIO image handling
   const transformedEvents = displayEvents.map((event, index) => {
     console.log(
       `📋 PROCESSING EVENT ${index + 1}/${displayEvents.length}: "${
@@ -150,6 +133,7 @@ export function useHome(): UseHomeReturn {
     console.log(`📋 Event images:`, {
       profileImage: event.profileImage,
       coverImage: event.coverImage,
+      locationImage: event.locationImage,
     });
 
     const transformed = transformEventToCardData(event);
@@ -162,7 +146,7 @@ export function useHome(): UseHomeReturn {
     return transformed;
   });
 
-  // Better date filtering
+  // Filter events by date
   const now = new Date();
   const upcomingEvents = transformedEvents.filter((event, index) => {
     const originalEvent = displayEvents[index];
@@ -177,9 +161,14 @@ export function useHome(): UseHomeReturn {
     categoriesCount: transformedCategories.length,
     popularEventsCount: popularEvents.length,
     upcomingEventsCount: upcomingEvents.length,
-    sampleEventImages: popularEvents
-      .slice(0, 3)
-      .map((e) => ({ title: e.title, image: e.image })),
+    sampleCategoryImages: transformedCategories.slice(0, 3).map((c) => ({
+      title: c.title,
+      image: c.img,
+    })),
+    sampleEventImages: popularEvents.slice(0, 3).map((e) => ({
+      title: e.title,
+      image: e.image,
+    })),
   });
 
   return {

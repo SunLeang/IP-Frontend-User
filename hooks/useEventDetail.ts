@@ -1,7 +1,11 @@
-import { useState, useEffect } from "react";
-import { Event } from "@/types/event";
-import { getEventById, joinEvent, leaveEvent } from "@/services/event-service";
-import { hasEventEnded } from "@/utils/event-utils";
+import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@/context/auth-context";
+import { Event, getEventById } from "@/services/event-service";
+import {
+  checkAttendanceStatus,
+  joinEvent,
+  leaveEvent,
+} from "@/services/attendance-service";
 
 /**
  * Return type for useEventDetail hook
@@ -25,90 +29,127 @@ interface UseEventDetailReturn {
  * @returns Object containing event data, states, and action handlers
  */
 export function useEventDetail(eventId: string): UseEventDetailReturn {
+  const { user, isAuthenticated } = useAuth();
   const [event, setEvent] = useState<Event | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isJoined, setIsJoined] = useState(false);
-  const [eventEnded, setEventEnded] = useState(false);
 
-  /**
-   * Fetches event data
-   */
-  const fetchEvent = async () => {
+  const fetchEventData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      console.log(`Fetching event detail for: ${eventId}`);
+      console.log("🔍 Fetching event data for ID:", eventId);
 
+      // Fetch event details (this should always work for public events)
       const eventData = await getEventById(eventId);
 
       if (!eventData) {
-        throw new Error("Event not found");
+        setError("Event not found");
+        return;
       }
 
       setEvent(eventData);
-      setEventEnded(hasEventEnded(eventData.dateTime));
+      console.log("✅ Event data loaded:", eventData.name);
 
-      console.log(`Successfully loaded event: ${eventData.name}`);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to load event";
-      console.error("Error in useEventDetail:", err);
-      setError(errorMessage);
-      setEvent(null);
+      // ✅ FIXED: Only check attendance if user is authenticated AND handle all errors gracefully
+      if (isAuthenticated && user) {
+        try {
+          console.log("👤 Checking attendance status for authenticated user");
+          const attendanceStatus = await checkAttendanceStatus(eventId);
+          setIsJoined(attendanceStatus.hasAttended || false);
+          console.log("📊 Attendance status:", attendanceStatus);
+        } catch (attendanceError: any) {
+          console.warn(
+            "⚠️ Could not fetch attendance status:",
+            attendanceError.message
+          );
+
+          // ✅ ENHANCED: Handle all types of permission and attendance errors gracefully
+          if (
+            attendanceError.message?.includes("permission") ||
+            attendanceError.message?.includes("Forbidden") ||
+            attendanceError.message?.includes("You do not have permission") ||
+            attendanceError.status === 403 ||
+            attendanceError.response?.status === 403
+          ) {
+            console.log(
+              "📝 User has no attendance permissions - setting joined status to false"
+            );
+            setIsJoined(false);
+          } else if (
+            attendanceError.status === 404 ||
+            attendanceError.response?.status === 404 ||
+            attendanceError.message?.includes("not found")
+          ) {
+            console.log("📝 No attendance record found - user not joined");
+            setIsJoined(false);
+          } else {
+            // ✅ For any other error, just set safe defaults and continue
+            console.log("📝 Unknown attendance error - setting safe defaults");
+            setIsJoined(false);
+          }
+
+          // ✅ IMPORTANT: Don't set the main error state for attendance issues
+          // The event details should still be viewable even if attendance check fails
+        }
+      } else {
+        console.log("👤 User not authenticated - skipping attendance check");
+        setIsJoined(false);
+      }
+    } catch (err: any) {
+      console.error("❌ Error fetching event data:", err);
+      // ✅ Only set error for actual event loading failures
+      setError(err.message || "Failed to load event details");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [eventId, isAuthenticated, user]);
 
-  /**
-   * Handles joining an event
-   */
-  const handleJoinEvent = async () => {
-    if (!event) return;
-
-    try {
-      const result = await joinEvent(event.id);
-      if (result.success) {
-        setIsJoined(true);
-      }
-    } catch (error) {
-      console.error("Error joining event:", error);
-      throw error;
-    }
-  };
-
-  /**
-   * Handles leaving an event
-   */
-  const handleLeaveEvent = async () => {
-    if (!event) return;
-
-    try {
-      const result = await leaveEvent(event.id);
-      if (result.success) {
-        setIsJoined(false);
-      }
-    } catch (error) {
-      console.error("Error leaving event:", error);
-      throw error;
-    }
-  };
-
-  /**
-   * Refetch function to manually trigger data reload
-   */
-  const refetch = () => {
-    fetchEvent();
-  };
-
-  // Fetch data when component mounts or eventId changes
   useEffect(() => {
     if (eventId) {
-      fetchEvent();
+      fetchEventData();
     }
-  }, [eventId]);
+  }, [fetchEventData, eventId]);
+
+  const handleJoinEvent = useCallback(async () => {
+    if (!user || !event) {
+      throw new Error("User must be logged in to join events");
+    }
+
+    try {
+      console.log("📝 Joining event:", event.name);
+      await joinEvent(eventId);
+      setIsJoined(true);
+      console.log("✅ Successfully joined event");
+    } catch (error: any) {
+      console.error("❌ Error joining event:", error);
+      throw error;
+    }
+  }, [eventId, user, event]);
+
+  const handleLeaveEvent = useCallback(async () => {
+    if (!user || !event) {
+      throw new Error("User must be logged in to leave events");
+    }
+
+    try {
+      console.log("🚪 Leaving event:", event.name);
+      await leaveEvent(eventId);
+      setIsJoined(false);
+      console.log("✅ Successfully left event");
+    } catch (error: any) {
+      console.error("❌ Error leaving event:", error);
+      throw error;
+    }
+  }, [eventId, user, event]);
+
+  const eventEnded = event ? new Date(event.dateTime) < new Date() : false;
+
+  const refetch = useCallback(() => {
+    fetchEventData();
+  }, [fetchEventData]);
 
   return {
     event,
