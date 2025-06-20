@@ -1,6 +1,6 @@
 "use client";
 
-import { User, Mail, Lock, CreditCard, Bell, Shield } from "lucide-react";
+import { User, Mail, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SettingsSidebarProps {
@@ -18,26 +18,14 @@ const menuItems = [
   {
     id: "account",
     label: "Account",
-    description: "Email and password settings",
+    description: "Email and account settings",
     icon: Mail,
   },
   {
     id: "security",
     label: "Security",
-    description: "Password and authentication",
+    description: "Password settings",
     icon: Shield,
-  },
-  {
-    id: "notifications",
-    label: "Notifications",
-    description: "Email and push preferences",
-    icon: Bell,
-  },
-  {
-    id: "billing",
-    label: "Billing",
-    description: "Payment methods and invoices",
-    icon: CreditCard,
   },
 ];
 

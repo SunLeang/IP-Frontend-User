@@ -11,45 +11,186 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Shield, Key, Smartphone, AlertTriangle } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Key,
+  Eye,
+  EyeOff,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+} from "lucide-react";
 import { SettingsHeader } from "./settings-header";
+import { useAuth } from "@/context/auth-context";
+import { apiPatch } from "@/services/api";
 
 export function SecuritySettings() {
+  const { user } = useAuth();
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
-
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
-  const [isPasswordSet, setIsPasswordSet] = useState(true);
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false,
+  });
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [dialog, setDialog] = useState({
+    isOpen: false,
+    type: "success" as "success" | "error" | "warning",
+    title: "",
+    message: "",
+  });
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setPasswordForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handlePasswordSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      alert("Passwords don't match. Please try again.");
-      return;
-    }
-    console.log("Password change submitted");
+  const togglePasswordVisibility = (field: keyof typeof showPasswords) => {
+    setShowPasswords((prev) => ({ ...prev, [field]: !prev[field] }));
   };
 
-  const handleSetPassword = () => {
-    setIsPasswordSet(true);
-    alert("Password setup initiated");
+  const showDialog = (
+    type: "success" | "error" | "warning",
+    title: string,
+    message: string
+  ) => {
+    setDialog({ isOpen: true, type, title, message });
+  };
+
+  const validatePasswords = () => {
+    if (!passwordForm.currentPassword) {
+      showDialog(
+        "warning",
+        "Missing Current Password",
+        "Please enter your current password."
+      );
+      return false;
+    }
+
+    if (!passwordForm.newPassword) {
+      showDialog(
+        "warning",
+        "Missing New Password",
+        "Please enter a new password."
+      );
+      return false;
+    }
+
+    if (passwordForm.newPassword.length < 8) {
+      showDialog(
+        "warning",
+        "Password Too Short",
+        "New password must be at least 8 characters long."
+      );
+      return false;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      showDialog(
+        "error",
+        "Passwords Don't Match",
+        "New password and confirmation password don't match. Please check and try again."
+      );
+      return false;
+    }
+
+    if (passwordForm.currentPassword === passwordForm.newPassword) {
+      showDialog(
+        "warning",
+        "Same Password",
+        "New password must be different from your current password."
+      );
+      return false;
+    }
+
+    return true;
+  };
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validatePasswords()) {
+      return;
+    }
+
+    if (!user?.id) return;
+
+    try {
+      setIsUpdating(true);
+
+      await apiPatch(`/api/users/${user.id}`, {
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+      });
+
+      // Clear form on success
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+
+      showDialog(
+        "success",
+        "Password Updated",
+        "Your password has been updated successfully!"
+      );
+    } catch (error: any) {
+      console.error("Error updating password:", error);
+
+      // Handle specific error messages
+      const errorMessage = error.response?.data?.message;
+
+      if (errorMessage === "Current password is incorrect") {
+        showDialog(
+          "error",
+          "Incorrect Password",
+          "The current password you entered is incorrect. Please try again."
+        );
+      } else if (errorMessage?.includes("password")) {
+        showDialog("error", "Password Error", errorMessage);
+      } else {
+        showDialog(
+          "error",
+          "Update Failed",
+          "Failed to update password. Please try again later."
+        );
+      }
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const getDialogIcon = () => {
+    switch (dialog.type) {
+      case "success":
+        return <CheckCircle className="h-6 w-6 text-green-600" />;
+      case "error":
+        return <XCircle className="h-6 w-6 text-red-600" />;
+      case "warning":
+        return <AlertTriangle className="h-6 w-6 text-yellow-600" />;
+      default:
+        return null;
+    }
   };
 
   return (
     <div>
       <SettingsHeader
         title="Security Settings"
-        description="Manage your account security and authentication"
+        description="Manage your account security"
       />
 
       <div className="p-8 space-y-8">
@@ -61,171 +202,140 @@ export function SecuritySettings() {
               Password
             </CardTitle>
             <CardDescription>
-              {isPasswordSet
-                ? "Change your password to keep your account secure"
-                : "Set up a password for your account"}
+              Change your password to keep your account secure
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {!isPasswordSet ? (
-              <div className="flex items-center justify-between p-4 border border-amber-200 rounded-lg bg-amber-50">
-                <div className="flex items-center gap-3">
-                  <AlertTriangle className="text-amber-600" size={20} />
-                  <div>
-                    <p className="font-medium text-amber-900">
-                      No password set
-                    </p>
-                    <p className="text-sm text-amber-700">
-                      A password has not been set for your account.
-                    </p>
-                  </div>
-                </div>
-                <Button onClick={handleSetPassword}>Set Password</Button>
-              </div>
-            ) : (
-              <form onSubmit={handlePasswordSubmit} className="space-y-4">
-                <div>
-                  <Label htmlFor="currentPassword">Current Password</Label>
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="currentPassword">Current Password</Label>
+                <div className="relative">
                   <Input
                     id="currentPassword"
                     name="currentPassword"
-                    type="password"
+                    type={showPasswords.current ? "text" : "password"}
                     value={passwordForm.currentPassword}
                     onChange={handlePasswordChange}
                     placeholder="Enter your current password"
                     required
+                    className="pr-10"
                   />
+                  <button
+                    type="button"
+                    onClick={() => togglePasswordVisibility("current")}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  >
+                    {showPasswords.current ? (
+                      <EyeOff className="h-4 w-4 text-gray-400" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-gray-400" />
+                    )}
+                  </button>
                 </div>
-                <div>
-                  <Label htmlFor="newPassword">New Password</Label>
+              </div>
+
+              <div>
+                <Label htmlFor="newPassword">New Password</Label>
+                <div className="relative">
                   <Input
                     id="newPassword"
                     name="newPassword"
-                    type="password"
+                    type={showPasswords.new ? "text" : "password"}
                     value={passwordForm.newPassword}
                     onChange={handlePasswordChange}
                     placeholder="Enter your new password"
                     required
+                    minLength={8}
+                    className="pr-10"
                   />
+                  <button
+                    type="button"
+                    onClick={() => togglePasswordVisibility("new")}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  >
+                    {showPasswords.new ? (
+                      <EyeOff className="h-4 w-4 text-gray-400" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-gray-400" />
+                    )}
+                  </button>
                 </div>
-                <div>
-                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <p className="text-sm text-gray-500 mt-1">
+                  Password must be at least 8 characters long.
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <div className="relative">
                   <Input
                     id="confirmPassword"
                     name="confirmPassword"
-                    type="password"
+                    type={showPasswords.confirm ? "text" : "password"}
                     value={passwordForm.confirmPassword}
                     onChange={handlePasswordChange}
                     placeholder="Confirm your new password"
                     required
+                    minLength={8}
+                    className="pr-10"
                   />
-                </div>
-                <div className="flex justify-end pt-4">
-                  <Button type="submit">Update Password</Button>
-                </div>
-              </form>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Two-Factor Authentication */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Smartphone size={20} />
-              Two-Factor Authentication
-            </CardTitle>
-            <CardDescription>
-              Add an extra layer of security to your account
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div>
-                  <p className="font-medium">Authenticator App</p>
-                  <p className="text-sm text-gray-600">
-                    Use an authenticator app to generate verification codes
-                  </p>
-                  <div className="mt-2">
-                    {twoFactorEnabled ? (
-                      <Badge
-                        variant="secondary"
-                        className="bg-green-100 text-green-800"
-                      >
-                        Enabled
-                      </Badge>
+                  <button
+                    type="button"
+                    onClick={() => togglePasswordVisibility("confirm")}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  >
+                    {showPasswords.confirm ? (
+                      <EyeOff className="h-4 w-4 text-gray-400" />
                     ) : (
-                      <Badge variant="outline">Disabled</Badge>
+                      <Eye className="h-4 w-4 text-gray-400" />
                     )}
-                  </div>
+                  </button>
                 </div>
               </div>
-              <Switch
-                checked={twoFactorEnabled}
-                onCheckedChange={setTwoFactorEnabled}
-              />
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Security Status */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield size={20} />
-              Security Status
-            </CardTitle>
-            <CardDescription>Overview of your account security</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                <div>
-                  <p className="font-medium">Password Protection</p>
-                  <p className="text-sm text-gray-600">
-                    Strong password is set
-                  </p>
-                </div>
-                <Badge
-                  variant="secondary"
-                  className="bg-green-100 text-green-800"
-                >
-                  Secured
-                </Badge>
+              <div className="flex justify-end pt-4">
+                <Button type="submit" disabled={isUpdating}>
+                  {isUpdating ? "Updating..." : "Update Password"}
+                </Button>
               </div>
-              <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                <div>
-                  <p className="font-medium">Two-Factor Authentication</p>
-                  <p className="text-sm text-gray-600">Extra security layer</p>
-                </div>
-                <Badge
-                  variant={twoFactorEnabled ? "secondary" : "outline"}
-                  className={
-                    twoFactorEnabled ? "bg-green-100 text-green-800" : ""
-                  }
-                >
-                  {twoFactorEnabled ? "Enabled" : "Disabled"}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between py-3">
-                <div>
-                  <p className="font-medium">Email Verification</p>
-                  <p className="text-sm text-gray-600">
-                    Email address is verified
-                  </p>
-                </div>
-                <Badge
-                  variant="secondary"
-                  className="bg-green-100 text-green-800"
-                >
-                  Verified
-                </Badge>
-              </div>
-            </div>
+            </form>
           </CardContent>
         </Card>
       </div>
+
+      {/* Dialog for messages */}
+      <Dialog
+        open={dialog.isOpen}
+        onOpenChange={(open) =>
+          setDialog((prev) => ({ ...prev, isOpen: open }))
+        }
+      >
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {getDialogIcon()}
+              {dialog.title}
+            </DialogTitle>
+            <DialogDescription className="text-base">
+              {dialog.message}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              onClick={() => setDialog((prev) => ({ ...prev, isOpen: false }))} // ✅ Fixed: Added missing closing parenthesis
+              className={
+                dialog.type === "success"
+                  ? "bg-green-600 hover:bg-green-700"
+                  : dialog.type === "error"
+                  ? "bg-red-600 hover:bg-red-700"
+                  : "bg-yellow-600 hover:bg-yellow-700"
+              }
+            >
+              OK
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
