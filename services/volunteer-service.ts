@@ -1,22 +1,11 @@
 import { apiGet, apiPost } from "./api";
+import type { Event } from "@/types/event";
 
-export interface VolunteerEvent {
-  id: string;
-  name: string;
-  description: string;
-  dateTime: string;
-  locationDesc: string;
-  profileImage?: string;
-  coverImage?: string;
-  acceptingVolunteers: boolean;
-  status: string;
-  category?: {
-    name: string;
-  };
-  _count?: {
-    volunteers?: number;
-    attendingUsers?: number;
-  };
+/**
+ * Volunteer-specific interfaces
+ */
+export interface VolunteerEvent extends Event {
+  // Extend base Event type for volunteer-specific needs
 }
 
 export interface VolunteerApplicationFormData {

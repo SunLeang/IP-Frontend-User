@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/auth-context";
-import { Event, getEventById } from "@/services/event-service";
+import type { Event } from "@/types/event";
+import { getEventById } from "@/services/event-service";
 import {
   checkAttendanceStatus,
   joinEvent,

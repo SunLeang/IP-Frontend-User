@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
-import { Category, getCategories } from "@/services/category-service";
-import { Event, getEvents } from "@/services/event-service";
+import type { Category } from "@/types/category";
+import type { Event } from "@/types/event";
 import { EventStatus } from "@/types/event";
+import { getCategories } from "@/services/category-service";
+import { getEvents } from "@/services/event-service";
 import {
   transformEventToCardData,
   getValidImageSrc,

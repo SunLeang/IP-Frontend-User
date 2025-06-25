@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { getEventById, Event } from "@/services/event-service";
+import type { Event } from "@/types/event";
+import { getEventById } from "@/services/event-service";
 import { apiGet } from "@/services/api";
 
 // Use the Event type from event-service instead of defining EventData

@@ -93,6 +93,6 @@ export interface EventPageProps {
  */
 export interface EventsFilterParams {
   categoryId?: string;
-  status?: string;
+  status?: EventStatus;
   acceptingVolunteers?: boolean;
 }

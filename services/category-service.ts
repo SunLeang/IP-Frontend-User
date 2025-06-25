@@ -1,24 +1,5 @@
 import { apiGet } from "./api";
-
-export interface Category {
-  id: string;
-  name: string;
-  image?: string;
-}
-
-export interface CategoryEvent {
-  id: string;
-  name: string;
-  description: string;
-  profileImage?: string;
-  dateTime: string;
-  locationDesc: string;
-  status: string;
-  _count?: {
-    interestedUsers?: number;
-    attendingUsers?: number;
-  };
-}
+import type { Category, CategoryEvent } from "@/types/category"; // ✅ Use type-only import
 
 /**
  * Fetches all categories for general use (filtering, navigation, etc.)

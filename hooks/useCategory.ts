@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Category, CategoryEvent } from "@/types/category";
+import type { Category, CategoryEvent } from "@/types/category";
 import { getCategoryWithEvents } from "@/services/category-service";
 
 /**

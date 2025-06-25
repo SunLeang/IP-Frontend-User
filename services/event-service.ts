@@ -1,42 +1,5 @@
 import { apiGet, apiPost, apiDelete } from "./api";
-import { EventStatus } from "@/types/event";
-
-export interface Event {
-  id: string;
-  name: string;
-  description: string;
-  profileImage?: string;
-  coverImage?: string;
-  dateTime: string;
-  locationDesc: string;
-  locationImage?: string;
-  status: EventStatus;
-  acceptingVolunteers: boolean;
-  categoryId: string;
-  organizerId: string;
-  createdAt: string;
-  updatedAt: string;
-  category?: {
-    id: string;
-    name: string;
-    image?: string;
-  };
-  organizer?: {
-    id: string;
-    fullName: string;
-  };
-  _count?: {
-    interestedUsers?: number;
-    attendingUsers?: number;
-    volunteers?: number;
-  };
-}
-
-export interface EventsFilterParams {
-  categoryId?: string;
-  status?: EventStatus; // ✅ Now properly typed with the enum
-  acceptingVolunteers?: boolean;
-}
+import type { EventStatus, Event, EventsFilterParams } from "@/types/event";
 
 /**
  * Event Service
@@ -102,7 +65,6 @@ export async function getEvents(params?: EventsFilterParams): Promise<Event[]> {
 export async function getEventById(id: string): Promise<Event | null> {
   try {
     console.log(`📡 Fetching event by ID: ${id}`);
-
     const event = await apiGet(`/api/events/${id}`);
 
     if (event) {
@@ -133,19 +95,15 @@ export async function toggleEventInterest(
 ): Promise<{ success: boolean; isInterested: boolean }> {
   try {
     console.log("Toggling interest for event:", eventId);
-
-    // Check current interest status
     const checkResponse = await apiGet(`/api/interests/check/${eventId}`);
     console.log("Current interest status:", checkResponse);
 
     let result;
     if (checkResponse && checkResponse.interested) {
-      // Remove interest
       console.log("Removing interest...");
       await apiDelete(`/api/interests/event/${eventId}`);
       result = { success: true, isInterested: false };
     } else {
-      // Add interest
       console.log("Adding interest...");
       await apiPost("/api/interests", { eventId });
       result = { success: true, isInterested: true };
