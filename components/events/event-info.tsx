@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { Calendar, Clock, MapPin } from "lucide-react";
 import { Event } from "@/types/event";
-import { formatEventDate } from "@/utils/event-utils";
+import { formatEventDate, formatEventTime } from "@/utils/event-utils";
 import { getValidImageSrc } from "@/lib/image-utils";
 
 /**
@@ -16,7 +16,8 @@ interface EventInfoProps {
  * Displays event date, time, location, organizer, and description
  */
 export function EventInfo({ event }: EventInfoProps) {
-  const dateInfo = formatEventDate(event.dateTime);
+  const fullDate = formatEventDate(event.dateTime);
+  const time = formatEventTime(event.dateTime);
 
   return (
     <div className="md:col-span-2">
@@ -25,11 +26,11 @@ export function EventInfo({ event }: EventInfoProps) {
         <h2 className="text-xl font-bold mb-3">Date and Time</h2>
         <div className="flex items-start mb-2">
           <Calendar className="h-5 w-5 mr-3 mt-0.5 text-gray-500" />
-          <span>{dateInfo.full}</span>
+          <span>{fullDate}</span>
         </div>
         <div className="flex items-start mb-2">
           <Clock className="h-5 w-5 mr-3 mt-0.5 text-gray-500" />
-          <span>{dateInfo.time}</span>
+          <span>{time}</span>
         </div>
       </div>
 
@@ -49,7 +50,7 @@ export function EventInfo({ event }: EventInfoProps) {
               alt="Event location map"
               width={600}
               height={300}
-              className="w-full h-auto"
+              className="w-full max-h-72 object-contain"
             />
           </div>
         )}

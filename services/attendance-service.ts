@@ -119,9 +119,15 @@ export async function joinEvent(eventId: string): Promise<void> {
   try {
     console.log(`📝 Joining event: ${eventId}`);
 
+    // Get current user from localStorage
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    if (!user.id) {
+      throw new Error("User not found in localStorage");
+    }
+
     const joinData: JoinEventRequest = {
       eventId,
-      userId: "", // This will be filled by the backend from the JWT token
+      userId: user.id,
       status: "JOINED",
     };
 
