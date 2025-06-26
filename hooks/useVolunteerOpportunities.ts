@@ -1,41 +1,30 @@
 import { useState, useEffect } from "react";
 import { getVolunteerEvents } from "@/services/volunteer-service";
-import { VolunteerOpportunity } from "@/components/volunteer/volunteer-card";
+import {
+  getValidImageSrc,
+  formatEventDateForCard,
+  formatEventTime,
+} from "@/utils/event-utils";
+import type { Event } from "@/types/event";
+
+export interface VolunteerOpportunity {
+  id: string;
+  title: string;
+  image: string;
+  category: string;
+  date: { month: string; day: string };
+  venue: string;
+  time: string;
+  applicants: number;
+  description: string;
+}
 
 interface UseVolunteerOpportunitiesReturn {
   opportunities: VolunteerOpportunity[];
   isLoading: boolean;
   error: string | null;
-  refetch: () => void;
+  refetchOpportunities: () => void;
 }
-
-/**
- * Helper function to ensure image paths are properly formatted
- */
-function getValidImageSrc(src: string | undefined | null): string {
-  if (!src) return "/icons/user.png";
-  if (src.startsWith("http") || src.startsWith("/")) return src;
-  return `/assets/images/${src}`;
-}
-
-/**
- * Sample data as fallback
- */
-const sampleVolunteerOpportunities: VolunteerOpportunity[] = Array.from(
-  { length: 9 },
-  (_, i) => ({
-    id: `volunteer-${i + 1}`,
-    title: `Requesting Volunteer for Event ${i + 1}`,
-    image: "/icons/user.png",
-    category: "Technology & Innovation",
-    date: { month: "NOV", day: "22" },
-    venue: "Venue",
-    time: "00:00 AM - 00:00 PM",
-    applicants: 20,
-    description:
-      "Join us as a volunteer for this event! Help with setup, customer assistance, and organizing activities. Sign up today!",
-  })
-);
 
 /**
  * Custom hook for managing volunteer opportunities
@@ -56,46 +45,71 @@ export function useVolunteerOpportunities(): UseVolunteerOpportunitiesReturn {
     setError(null);
 
     try {
-      console.log("Fetching volunteer opportunities...");
+      console.log("🤝 Fetching volunteer opportunities...");
 
       const events = await getVolunteerEvents();
 
-      if (events && events.length > 0) {
-        // Transform events to volunteer opportunities
-        const transformedEvents = events.map((event) => ({
-          id: event.id,
-          title: event.name,
-          image: getValidImageSrc(event.profileImage),
-          category: event.category?.name || "Uncategorized",
-          date: {
-            month: new Date(event.dateTime)
-              .toLocaleString("en-US", { month: "short" })
-              .toUpperCase(),
-            day: new Date(event.dateTime).getDate().toString(),
-          },
-          venue: event.locationDesc,
-          time: new Date(event.dateTime).toLocaleString("en-US", {
-            hour: "numeric",
-            minute: "numeric",
-            hour12: true,
-          }),
-          applicants: event._count?.volunteers || 0,
-          description: event.description,
-        }));
+      console.log(`📊 Raw volunteer events from API:`, {
+        count: events.length,
+        events: events.map((e) => ({
+          id: e.id,
+          name: e.name,
+          profileImage: e.profileImage,
+          coverImage: e.coverImage,
+        })),
+      });
 
-        setOpportunities(transformedEvents);
-        console.log(
-          `Successfully loaded ${transformedEvents.length} volunteer opportunities`
-        );
-      } else {
-        console.log("No events from API, using fallback data");
-        setOpportunities(sampleVolunteerOpportunities.slice(0, 3));
-      }
+      // Transform events to volunteer opportunities with proper MinIO URL handling
+      const transformedOpportunities: VolunteerOpportunity[] = events.map(
+        (event: Event) => {
+          // Use the proper image processing utility
+          let processedImage = getValidImageSrc(event.profileImage);
+
+          // If profile image is not available, try cover image
+          if (!event.profileImage && event.coverImage) {
+            processedImage = getValidImageSrc(event.coverImage);
+          }
+
+          console.log(`🎯 PROCESSING VOLUNTEER EVENT: "${event.name}"`, {
+            id: event.id,
+            originalProfileImage: event.profileImage,
+            originalCoverImage: event.coverImage,
+            processedImage,
+            shouldBeMinIO: processedImage.includes("localhost:9000"),
+          });
+
+          return {
+            id: event.id,
+            title: event.name,
+            image: processedImage,
+            category: event.category?.name || "General",
+            date: formatEventDateForCard(event.dateTime),
+            venue: event.locationDesc,
+            time: formatEventTime(event.dateTime),
+            applicants: event._count?.volunteers || 0,
+            description: event.description,
+          };
+        }
+      );
+
+      console.log(
+        `✅ Transformed ${transformedOpportunities.length} volunteer opportunities`
+      );
+
+      // Log final processed images
+      transformedOpportunities.forEach((opp, index) => {
+        console.log(`🖼️ FINAL VOLUNTEER IMAGE ${index + 1}: "${opp.title}"`, {
+          image: opp.image,
+          isMinIO: opp.image.includes("localhost:9000"),
+          isLocal: opp.image.startsWith("/"),
+        });
+      });
+
+      setOpportunities(transformedOpportunities);
     } catch (err) {
-      console.error("Error fetching volunteer opportunities:", err);
+      console.error("❌ Error fetching volunteer opportunities:", err);
       setError("Failed to load volunteer opportunities");
-      // Use fallback data on error
-      setOpportunities(sampleVolunteerOpportunities.slice(0, 3));
+      setOpportunities([]);
     } finally {
       setIsLoading(false);
     }
@@ -104,7 +118,7 @@ export function useVolunteerOpportunities(): UseVolunteerOpportunitiesReturn {
   /**
    * Refetch function to manually trigger data reload
    */
-  const refetch = () => {
+  const refetchOpportunities = () => {
     fetchOpportunities();
   };
 
@@ -117,6 +131,6 @@ export function useVolunteerOpportunities(): UseVolunteerOpportunitiesReturn {
     opportunities,
     isLoading,
     error,
-    refetch,
+    refetchOpportunities,
   };
 }

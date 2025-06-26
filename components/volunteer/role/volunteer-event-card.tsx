@@ -1,9 +1,9 @@
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, MapPin, Users } from "lucide-react";
 import { VolunteerEvent } from "@/services/volunteer-service";
+import { getValidImageSrc } from "@/utils/event-utils";
 
 interface VolunteerEventCardProps {
   event: VolunteerEvent;
@@ -11,13 +11,6 @@ interface VolunteerEventCardProps {
 
 export function VolunteerEventCard({ event }: VolunteerEventCardProps) {
   const router = useRouter();
-
-  // Helper function to ensure image paths are properly formatted
-  const getValidImageSrc = (src: string | undefined | null): string => {
-    if (!src) return "/assets/constants/billboard.png";
-    if (src.startsWith("http") || src.startsWith("/")) return src;
-    return `/assets/images/${src}`;
-  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -49,6 +42,8 @@ export function VolunteerEventCard({ event }: VolunteerEventCardProps) {
     router.push(`/volunteer-role/events/${event.id}`);
   };
 
+  const eventImage = getValidImageSrc(event.profileImage || event.coverImage);
+
   const handleImageError = (
     e: React.SyntheticEvent<HTMLImageElement, Event>
   ) => {
@@ -63,13 +58,16 @@ export function VolunteerEventCard({ event }: VolunteerEventCardProps) {
       className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
       onClick={handleCardClick}
     >
+      {/* Use regular img tag instead of Next.js Image */}
       <div className="relative h-48">
-        <Image
-          src={getValidImageSrc(event.profileImage || event.coverImage)}
+        <img
+          src={eventImage}
           alt={event.name}
-          fill
-          className="object-cover"
+          className="w-full h-full object-cover"
           onError={handleImageError}
+          onLoad={() => {
+            console.log(`✅ Volunteer event card image loaded: ${event.name}`);
+          }}
         />
       </div>
       <CardContent className="p-4">

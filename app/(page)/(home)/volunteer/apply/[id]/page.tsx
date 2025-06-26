@@ -1,25 +1,27 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import React from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/context/auth-context";
 import { useVolunteerApplication } from "@/hooks/useVolunteerApplication";
+import { uploadDocument, deleteDocument } from "@/services/file-upload-service";
 import { VolunteerDetailHeader } from "@/components/volunteer/volunteer-detail-header";
 import { ApplicationProgress } from "@/components/volunteer/application-progress";
-import { ApplicationFormStep1 } from "@/components/volunteer/application-form-step1";
+import { ApplicationFormStep1 } from "@/components/volunteer/application-form-step1"; // ✅ FIXED: Remove dash
 import { FileUploadStep } from "@/components/volunteer/file-upload-step";
 import { ApplicationReviewStep } from "@/components/volunteer/application-review-step";
 import {
   SuccessModal,
   ErrorModal,
 } from "@/components/volunteer/application-modals";
-import { Skeleton } from "@/components/ui/skeleton";
-import { uploadDocument, deleteDocument } from "@/services/file-upload-service";
-import { getValidImageSrc } from "@/utils/event-utils"; // ✅ Use the updated utility
+import { getValidImageSrc } from "@/utils/event-utils";
 
-// Updated helper function to use the utility
+//  Updated helper function to use the utility with proper null checks
 function getValidEventImageSrc(src: string | undefined | null): string {
+  if (!src) {
+    return "/assets/images/event-placeholder.png";
+  }
   return getValidImageSrc(src) || "/assets/images/event-placeholder.png";
 }
 
@@ -194,34 +196,35 @@ export default function VolunteerApplicationPage({
         setUploadedFiles((prev) => [...prev, tempFileEntry]);
 
         try {
-          console.log("📤 Starting upload for:", file.name);
-          // Upload to MinIO
-          const result = await uploadDocument(file, "cvs");
-          console.log("✅ Upload result:", result);
+          console.log("📤 Uploading file:", file.name);
+          const response = await uploadDocument(file, "cvs");
+          console.log("📥 Upload response:", response);
 
-          // Update the file entry with the uploaded data
+          // Update the file entry with upload results
           setUploadedFiles((prev) =>
-            prev.map((f) =>
-              f.name === file.name && f.uploading
+            prev.map((item) =>
+              item.name === file.name && item.uploading
                 ? {
-                    name: result.data.originalName || file.name,
-                    size: result.data.size || file.size,
-                    documentUrl: result.data.documentUrl,
-                    filename: result.data.filename,
+                    name: file.name,
+                    size: file.size,
+                    documentUrl: response.data.documentUrl,
+                    filename: response.data.filename,
                     uploading: false,
                   }
-                : f
+                : item
             )
           );
 
-          console.log("✅ File upload completed:", file.name);
+          console.log("✅ File uploaded successfully:", response.data.filename);
         } catch (error: any) {
-          console.error("Upload failed:", error);
-          // Remove failed upload from list
+          console.error("❌ File upload failed:", error);
+
+          // Remove the failed upload from the list
           setUploadedFiles((prev) =>
-            prev.filter((f) => !(f.name === file.name && f.uploading))
+            prev.filter((item) => !(item.name === file.name && item.uploading))
           );
-          setErrorMessage(`Failed to upload ${file.name}: ${error.message}`);
+
+          setErrorMessage(error.message || "Failed to upload file");
           setShowErrorModal(true);
         }
       }
@@ -233,9 +236,7 @@ export default function VolunteerApplicationPage({
     setIsDragging(false);
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      // Convert FileList to File array and trigger upload
       const files = Array.from(e.dataTransfer.files);
-      // Create a synthetic event to reuse handleFileUpload logic
       const syntheticEvent = {
         target: { files: e.dataTransfer.files },
       } as React.ChangeEvent<HTMLInputElement>;
@@ -257,7 +258,7 @@ export default function VolunteerApplicationPage({
     }
   };
 
-  // ✅ FIXED handleSubmit - use uploadedFiles directly
+  // use uploadedFiles directly
   const handleSubmit = async () => {
     try {
       console.log("🚀 Submitting application...");
@@ -282,9 +283,11 @@ export default function VolunteerApplicationPage({
       const cvPath = completedFiles[0].documentUrl;
       console.log("📄 Using CV path:", cvPath);
 
-      // Call the hook's submit function with proper parameters
-      // But we need to modify this since the hook expects different parameters
-      const success = await submitApplication();
+      const success = await submitApplication({
+        eventId: id,
+        whyVolunteer: formData.reason,
+        cvPath: cvPath,
+      });
 
       if (success) {
         setShowSuccessModal(true);
@@ -305,19 +308,8 @@ export default function VolunteerApplicationPage({
     return (
       <div className="min-h-screen bg-white pb-10">
         <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center mb-8">
-            <div className="h-6 w-6 mr-4">
-              <Skeleton className="h-full w-full rounded-full" />
-            </div>
-            <Skeleton className="h-10 w-64" />
-          </div>
           <Skeleton className="h-4 w-full max-w-md mb-8" />
           <Skeleton className="h-40 w-full max-w-md mb-8" />
-          <div className="space-y-6">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-          </div>
         </div>
       </div>
     );
@@ -325,23 +317,28 @@ export default function VolunteerApplicationPage({
 
   if (!isAuthenticated) return null;
 
-  // Add debug logging for event images
+  // Add debug logging for event images with null checks
   console.log("🖼️ VOLUNTEER APPLICATION EVENT IMAGES:", {
-    eventName: event?.name,
-    profileImage: event?.profileImage,
-    coverImage: event?.coverImage,
-    processedImage: getValidEventImageSrc(event?.profileImage),
+    eventName: event?.name || "No event name",
+    profileImage: event?.profileImage || "No profile image",
+    coverImage: event?.coverImage || "No cover image",
+    processedImage: event
+      ? getValidEventImageSrc(event.profileImage)
+      : "No event",
   });
 
   return (
     <div className="min-h-screen bg-white pb-10">
       <div className="container mx-auto px-4 py-6">
+        {/* Add null check for event */}
         <VolunteerDetailHeader
-          eventName={event?.name}
-          eventImage={getValidEventImageSrc(event?.profileImage)} // ✅ Use updated function
+          eventName={event?.name || "Loading..."}
+          eventImage={
+            event ? getValidEventImageSrc(event.profileImage) : undefined
+          }
           onBack={() => {
             if (step === 1) {
-              router.push(`/volunteer/${id}`);
+              router.back();
             } else {
               handleBack();
             }
@@ -350,7 +347,6 @@ export default function VolunteerApplicationPage({
 
         <ApplicationProgress currentStep={step} />
 
-        {/* Step 1: Information */}
         {step === 1 && (
           <ApplicationFormStep1
             formData={formData}
@@ -359,52 +355,31 @@ export default function VolunteerApplicationPage({
           />
         )}
 
-        {/* Step 2: CV Upload */}
         {step === 2 && (
           <FileUploadStep
-            files={uploadedFiles.map((f) => ({
-              name: f.name,
-              size: f.size,
-              progress: f.uploading ? 50 : 100,
-              completed: !f.uploading,
-            }))}
-            isDragging={isDragging}
+            files={uploadedFiles}
             onFileUpload={handleFileUpload}
+            onRemoveFile={removeFile}
+            onNext={handleNext}
+            onBack={handleBack}
+            isDragging={isDragging}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            onRemoveFile={(fileName) => {
-              const file = uploadedFiles.find((f) => f.name === fileName);
-              if (file) {
-                removeFile(file.filename);
-              }
-            }}
-            onBack={handleBack}
-            onNext={handleNext}
           />
         )}
 
-        {/* Step 3: Review */}
         {step === 3 && (
           <ApplicationReviewStep
             formData={formData}
-            files={uploadedFiles
-              .filter((f) => !f.uploading)
-              .map((f) => ({
-                name: f.name,
-                size: f.size,
-                progress: 100,
-                completed: true,
-              }))}
-            eventName={event?.name}
-            onBack={handleBack}
+            files={uploadedFiles}
             onSubmit={handleSubmit}
+            onBack={handleBack}
             onGoToStep={handleGoToStep}
             isSubmitting={isSubmitting}
           />
         )}
 
-        {/* Modals */}
         <SuccessModal isOpen={showSuccessModal} onContinue={handleContinue} />
         <ErrorModal
           isOpen={showErrorModal}

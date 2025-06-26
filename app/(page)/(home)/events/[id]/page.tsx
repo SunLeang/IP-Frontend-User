@@ -8,7 +8,10 @@ import { useAuth } from "@/context/auth-context";
 import { useInterest } from "@/context/interest-context";
 import { EventPageProps } from "@/types/event";
 import { useEventDetail } from "@/hooks/useEventDetail";
-import { transformEventToCardData } from "@/utils/event-utils";
+import {
+  transformEventToCardData,
+  getValidImageSrc,
+} from "@/utils/event-utils";
 import { EventHeader } from "@/components/events/event-header";
 import { EventInfo } from "@/components/events/event-info";
 import { EventActions } from "@/components/events/event-actions";
@@ -18,14 +21,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 /**
  * Event Detail Page Component
- * Displays detailed information about a single event
- *
- * Features:
- * - Event details display
- * - Join/leave functionality
- * - Interest management
- * - Rating and comments with pagination
- * - Volunteer application link
  */
 export default function EventDetailPage({ params }: EventPageProps) {
   const resolvedParams = use(params);
@@ -69,7 +64,6 @@ export default function EventDetailPage({ params }: EventPageProps) {
    */
   const handleJoinClick = async () => {
     if (!user) {
-      // Redirect to login with return URL
       window.location.href = `/login?redirect=${encodeURIComponent(
         `/events/${id}`
       )}`;
@@ -83,7 +77,6 @@ export default function EventDetailPage({ params }: EventPageProps) {
         await handleJoinEvent();
       } catch (error) {
         console.error("Error joining event:", error);
-        // You could show a toast notification here
       }
     }
   };
@@ -96,7 +89,6 @@ export default function EventDetailPage({ params }: EventPageProps) {
       await handleLeaveEvent();
     } catch (error) {
       console.error("Error leaving event:", error);
-      // Add notification here later
     }
     setShowCancelModal(false);
   };
@@ -113,29 +105,31 @@ export default function EventDetailPage({ params }: EventPageProps) {
 
   return (
     <div className="min-h-screen bg-white pb-10">
-      {/* Event Header */}
+      {/* Use EventHeader component instead of inline header */}
       <EventHeader
         event={event}
         isInterested={saved}
         onInterestToggle={handleInterestToggle}
       />
 
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 py-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Event Information */}
+          {/* Use EventInfo component */}
           <EventInfo event={event} />
 
-          {/* Event Actions Sidebar */}
+          {/* Use EventActions component */}
           <EventActions
             event={event}
-            eventEnded={eventEnded}
             isJoined={isJoined}
+            eventEnded={eventEnded}
             onJoinClick={handleJoinClick}
           />
         </div>
 
-        {/* Comments Section with Integrated Rating */}
-        <CommentSection eventId={event.id} eventDateTime={event.dateTime} />
+        {/* Comments Section */}
+        <div className="mt-8">
+          <CommentSection eventId={id} />
+        </div>
       </div>
 
       {/* Cancel Confirmation Modal */}

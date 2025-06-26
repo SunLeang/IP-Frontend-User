@@ -1,6 +1,6 @@
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import Image from "next/image";
+import { getValidImageSrc } from "@/utils/event-utils";
 
 interface VolunteerDetailHeaderProps {
   eventName?: string;
@@ -23,6 +23,14 @@ export function VolunteerDetailHeader({
     }
   };
 
+  // Process the event image with proper MinIO URL handling
+  const processedEventImage = getValidImageSrc(eventImage);
+
+  console.log(`🎯 VOLUNTEER HEADER: "${eventName}"`, {
+    originalImage: eventImage,
+    processedImage: processedEventImage,
+  });
+
   return (
     <>
       {/* Back button and title */}
@@ -39,12 +47,17 @@ export function VolunteerDetailHeader({
           <h2 className="text-2xl font-bold mb-4">{eventName}</h2>
           {eventImage && (
             <div className="rounded-lg overflow-hidden mb-6">
-              <Image
-                src={eventImage}
+              {/* Use regular img tag instead of Next.js Image */}
+              <img
+                src={processedEventImage}
                 alt={eventName}
-                width={400}
-                height={250}
                 className="w-full max-w-md h-auto object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  if (target.src !== "/assets/constants/billboard.png") {
+                    target.src = "/assets/constants/billboard.png";
+                  }
+                }}
               />
             </div>
           )}

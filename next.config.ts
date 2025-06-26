@@ -4,16 +4,16 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: '**',
+        protocol: "http",
+        hostname: "localhost",
+        port: "9000",
+        pathname: "/**",
       },
       {
-        protocol: 'http',
-        hostname: '**',
-      }
+        protocol: "https",
+        hostname: "**",
+      },
     ],
-    // Alternative: specify allowed domains
-    // domains: ['example.com', 'yourdomain.com'],
   },
 };
 

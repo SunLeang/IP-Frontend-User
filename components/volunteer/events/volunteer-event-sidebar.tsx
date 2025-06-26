@@ -6,100 +6,61 @@ interface VolunteerEventSidebarProps {
 }
 
 export function VolunteerEventSidebar({ event }: VolunteerEventSidebarProps) {
-  const getStatusBadge = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "completed":
-        return {
-          className: "bg-green-100 text-green-800",
-          label: "Event Completed",
-        };
-      case "published":
-        return {
-          className: "bg-blue-100 text-blue-800",
-          label: "Event Active",
-        };
-      case "cancelled":
-        return {
-          className: "bg-red-100 text-red-800",
-          label: "Event Cancelled",
-        };
-      default:
-        return { className: "bg-gray-100 text-gray-800", label: status };
-    }
-  };
-
-  const getVolunteerStatusBadge = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "approved":
-        return {
-          className: "bg-green-100 text-green-800",
-          label: "Volunteer Approved",
-        };
-      case "pending":
-        return {
-          className: "bg-yellow-100 text-yellow-800",
-          label: "Application Pending",
-        };
-      case "rejected":
-        return {
-          className: "bg-red-100 text-red-800",
-          label: "Application Rejected",
-        };
-      default:
-        return { className: "bg-gray-100 text-gray-800", label: status };
-    }
-  };
-
-  const eventStatus = getStatusBadge(event.status);
-  const volunteerStatus = getVolunteerStatusBadge(event.volunteerStatus);
-
   return (
-    <div className="md:col-span-1">
-      {/* Event Status */}
-      <div className="mb-6">
-        <h2 className="text-xl font-bold mb-3">Event Status</h2>
-        <Badge className={eventStatus.className}>{eventStatus.label}</Badge>
-      </div>
-
-      {/* Volunteer Status */}
-      <div className="mb-6">
-        <h2 className="text-xl font-bold mb-3">Your Status</h2>
-        <Badge className={volunteerStatus.className}>
-          {volunteerStatus.label}
+    <div className="md:col-span-1 space-y-8">
+      {/* Added more spacing and better separation from image */}
+      <div className="bg-white rounded-lg p-8 shadow-sm border border-gray-100 mt-8">
+        <h3 className="text-lg font-semibold mb-4 text-gray-800">Category</h3>
+        <Badge
+          variant="secondary"
+          className="text-sm px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200"
+        >
+          {event.category?.name || "General"}
         </Badge>
-        {event.approvedAt && (
-          <p className="text-sm text-gray-500 mt-2">
-            Approved on: {new Date(event.approvedAt).toLocaleDateString()}
-          </p>
-        )}
       </div>
 
-      {/* Category Information */}
-      <div className="mb-6">
-        <h2 className="text-xl font-bold mb-3">Category</h2>
-        <p>{event.category?.name || "Uncategorized"}</p>
+      {/* Event Organizer */}
+      <div className="bg-white rounded-lg p-8 shadow-sm border border-gray-100">
+        <h3 className="text-lg font-semibold mb-4 text-gray-800">
+          Event Organizer
+        </h3>
+        <div className="flex items-center">
+          <img
+            src="/icons/user.png"
+            alt="Organizer"
+            className="w-12 h-12 rounded-full object-cover mr-3 border-2 border-gray-200"
+          />
+          <div>
+            <p className="font-medium text-gray-800">
+              {event.organizer?.fullName || "Event Organizer"}
+            </p>
+            <p className="text-sm text-gray-600">Event Host</p>
+          </div>
+        </div>
       </div>
 
       {/* Event Statistics */}
-      <div className="mb-6">
-        <h2 className="text-xl font-bold mb-3">Statistics</h2>
-        <div className="space-y-2">
-          <div className="flex justify-between">
-            <span className="text-sm text-gray-600">Attendees:</span>
-            <span className="text-sm font-medium">
+      <div className="bg-white rounded-lg p-8 shadow-sm border border-gray-100">
+        <h3 className="text-lg font-semibold mb-4 text-gray-800">
+          Event Statistics
+        </h3>
+        <div className="space-y-4">
+          <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+            <span className="text-gray-600 font-medium">Attendees</span>
+            <span className="font-semibold text-gray-800 bg-white px-3 py-2 rounded border">
               {event._count?.attendingUsers || 0}
             </span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-sm text-gray-600">Volunteers:</span>
-            <span className="text-sm font-medium">
+          <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+            <span className="text-gray-600 font-medium">Volunteers</span>
+            <span className="font-semibold text-gray-800 bg-white px-3 py-2 rounded border">
               {event._count?.volunteers || 0}
             </span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-sm text-gray-600">Tasks:</span>
-            <span className="text-sm font-medium">
-              {event._count?.tasks || 0}
+          <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+            <span className="text-gray-600 font-medium">Interested</span>
+            <span className="font-semibold text-gray-800 bg-white px-3 py-2 rounded border">
+              {event._count?.interestedUsers || 0}
             </span>
           </div>
         </div>

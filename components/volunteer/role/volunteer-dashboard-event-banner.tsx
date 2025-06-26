@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import { apiGet } from "@/services/api";
 import { getValidImageSrc } from "@/utils/event-utils";
@@ -115,7 +114,7 @@ export function VolunteerDashboardEventBanner({
 
   // Prioritize cover image, then profile image, then fallback
   const getEventImage = (): string => {
-    if (eventImage) return eventImage;
+    if (eventImage) return getValidImageSrc(eventImage);
 
     if (currentEvent) {
       // Try cover image first (better for banners)
@@ -170,7 +169,7 @@ export function VolunteerDashboardEventBanner({
             ? `You're volunteering for ${displayName}`
             : displayName}
         </h1>
-            
+
         {/* Loading state */}
         {isLoading && (
           <div className="relative w-full h-[200px] md:h-[250px] rounded-lg overflow-hidden bg-gray-200 animate-pulse flex items-center justify-center">
@@ -185,16 +184,19 @@ export function VolunteerDashboardEventBanner({
           </div>
         )}
 
-        {/* Image */}
+        {/* Use regular img tag instead of Next.js Image */}
         {!isLoading && !error && (
           <div className="relative w-full h-[200px] md:h-[250px] rounded-lg overflow-hidden">
-            <Image
+            <img
               src={displayImage}
               alt={displayName}
-              fill
-              className="object-cover"
+              className="w-full h-full object-cover"
               onError={handleImageError}
-              priority
+              onLoad={() => {
+                console.log(
+                  `✅ Banner image loaded successfully: ${displayImage}`
+                );
+              }}
             />
             {/* Overlay for better text contrast if needed */}
             <div className="absolute inset-0 bg-black bg-opacity-20 rounded-lg"></div>

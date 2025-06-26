@@ -50,6 +50,23 @@ export interface Event {
 /**
  * Event card props interface
  */
+export interface EventCardProps {
+  id: string;
+  title: string;
+  image: string;
+  category: string;
+  date: { month: string; day: string };
+  venue: string;
+  time: string;
+  interested: number;
+  attending?: number;
+  price?: number;
+  onClick?: () => void;
+}
+
+/**
+ * Event card data interface (for transformations)
+ */
 export interface EventCardData {
   id: string;
   title: string;
@@ -93,6 +110,6 @@ export interface EventPageProps {
  */
 export interface EventsFilterParams {
   categoryId?: string;
-  status?: EventStatus;
+  status?: EventStatus | string;
   acceptingVolunteers?: boolean;
 }

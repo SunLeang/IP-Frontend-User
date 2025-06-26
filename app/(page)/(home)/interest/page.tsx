@@ -1,12 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { EventCard } from "@/components/events/event-card";
 import { Button } from "@/components/ui/button";
-import { InterestEventCard } from "@/components/interest/interest-event-card";
-import { useInterest } from "@/context/interest-context";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useInterest } from "@/context/interest-context";
+import { getValidImageSrc } from "@/utils/event-utils";
 
 export default function InterestPage() {
   const { interestedEvents, removeInterest, isLoading, error } = useInterest();
@@ -20,92 +19,123 @@ export default function InterestPage() {
     try {
       await removeInterest(eventId);
     } catch (err) {
-      console.error("Failed to remove interest:", err);
+      console.error("Error removing interest:", err);
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 pb-10">
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex items-center mb-6">
-          <Link href="/" className="mr-4">
-            <ArrowLeft className="h-6 w-6" />
-          </Link>
-          <h1 className="text-3xl font-bold">Interested Events</h1>
-        </div>
+      <div className="container mx-auto py-8 px-4">
+        <h1 className="text-3xl font-bold mb-6">Your Interested Events</h1>
 
-        {isLoading ? (
+        {/* Loading State */}
+        {isLoading && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {Array.from({ length: 8 }).map((_, index) => (
               <div
                 key={index}
-                className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse"
+                className="bg-white rounded-lg overflow-hidden shadow-sm"
               >
                 <Skeleton className="w-full h-48" />
-                <div className="p-4">
-                  <div className="flex gap-4">
-                    <Skeleton className="w-12 h-16 flex-shrink-0" />
-                    <div className="flex-1">
-                      <Skeleton className="h-6 w-full mb-2" />
-                      <Skeleton className="h-4 w-3/4 mb-1" />
-                      <Skeleton className="h-3 w-1/2 mb-2" />
-                      <Skeleton className="h-4 w-full" />
-                    </div>
-                  </div>
+                <div className="p-4 space-y-2">
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                  <Skeleton className="h-4 w-2/3" />
                 </div>
               </div>
             ))}
           </div>
-        ) : error ? (
-          <div className="text-center py-10">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-6 shadow-sm max-w-md mx-auto">
-              <p className="text-red-600 mb-4">{error}</p>
-              <Button
-                onClick={() => window.location.reload()}
-                className="shadow-md hover:shadow-lg transition-shadow"
-              >
-                Try Again
-              </Button>
-            </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="text-center py-12">
+            <div className="text-red-500 mb-4">{error}</div>
+            <Button onClick={() => window.location.reload()}>Try Again</Button>
           </div>
-        ) : interestedEvents.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="bg-white rounded-lg shadow-lg p-8 max-w-md mx-auto">
-              <h2 className="text-xl font-medium text-gray-600 mb-4">
-                You haven&apos;t marked any events as interested yet
-              </h2>
-              <p className="text-gray-500 mb-6">
-                Browse events and click the star icon to add them to your
-                interests
+        )}
+
+        {/* Empty State */}
+        {!isLoading && !error && interestedEvents.length === 0 && (
+          <div className="text-center py-12">
+            <div className="max-w-md mx-auto">
+              <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gray-100 flex items-center justify-center">
+                <svg
+                  className="w-12 h-12 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                No interested events yet
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Start exploring events and add them to your interests!
               </p>
-              <Button
-                asChild
-                className="shadow-md hover:shadow-lg transition-shadow"
-              >
-                <Link href="/events">Browse Events</Link>
+              <Button onClick={() => (window.location.href = "/events")}>
+                Browse Events
               </Button>
             </div>
           </div>
-        ) : (
+        )}
+
+        {/* Events Grid */}
+        {!isLoading && !error && interestedEvents.length > 0 && (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {interestedEvents.slice(0, visibleEvents).map((event) => (
-                <InterestEventCard
-                  key={event.id}
-                  {...event}
-                  onRemoveInterest={handleRemoveInterest}
-                />
-              ))}
+            <p className="text-gray-600 mb-6">
+              You have {interestedEvents.length} event
+              {interestedEvents.length !== 1 ? "s" : ""} in your interests
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+              {interestedEvents.slice(0, visibleEvents).map((event) => {
+                // Process the image URL for each interested event
+                const processedImage = getValidImageSrc(event.image);
+
+                console.log(
+                  `❤️ INTERESTED EVENT: "${event.title}" - Original: ${event.image} -> Processed: ${processedImage}`
+                );
+
+                return (
+                  <div key={event.id} className="relative">
+                    <EventCard {...event} image={processedImage} />
+                    <button
+                      onClick={() => handleRemoveInterest(event.id)}
+                      className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-2 shadow-lg transition-colors"
+                      title="Remove from interests"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                );
+              })}
             </div>
 
+            {/* See More Button */}
             {visibleEvents < interestedEvents.length && (
-              <div className="text-center mt-8">
-                <Button
-                  variant="outline"
-                  onClick={handleSeeMore}
-                  className="px-8 py-2 rounded-full shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5"
-                >
-                  See more
+              <div className="text-center">
+                <Button onClick={handleSeeMore} variant="outline">
+                  See More ({interestedEvents.length - visibleEvents} remaining)
                 </Button>
               </div>
             )}

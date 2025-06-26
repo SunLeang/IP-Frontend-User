@@ -1,126 +1,128 @@
-import { Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Upload, X, FileText } from "lucide-react";
 
 interface FileItem {
   name: string;
   size: number;
-  progress: number;
-  completed: boolean;
+  documentUrl: string;
+  filename: string;
+  uploading?: boolean;
 }
 
 interface FileUploadStepProps {
   files: FileItem[];
-  isDragging: boolean;
   onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onDragOver: (e: React.DragEvent) => void;
-  onDragLeave: (e: React.DragEvent) => void; 
-  onDrop: (e: React.DragEvent) => void;
-  onRemoveFile: (fileName: string) => void;
-  onBack: () => void;
+  onRemoveFile: (filename: string) => void;
   onNext: () => void;
+  onBack: () => void;
+  isDragging: boolean;
+  onDragOver: (e: React.DragEvent) => void;
+  onDragLeave: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent) => void;
 }
 
 export function FileUploadStep({
   files,
-  isDragging,
   onFileUpload,
+  onRemoveFile,
+  onNext,
+  onBack,
+  isDragging,
   onDragOver,
   onDragLeave,
   onDrop,
-  onRemoveFile,
-  onBack,
-  onNext,
 }: FileUploadStepProps) {
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  };
+
   return (
-    <div>
-      <div className="bg-white p-4 rounded-lg border border-gray-200">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <h2 className="text-lg font-bold mb-1">Upload your CV</h2>
-            <p className="text-sm text-gray-500">
-              Select and upload your CV file
-            </p>
-          </div>
-          <button className="ml-auto">
-            <X className="h-5 w-5 text-gray-400" />
-          </button>
-        </div>
+    <div className="max-w-4xl mx-auto">
+      <div className="bg-white rounded-lg p-6 mb-6">
+        <h2 className="text-xl font-bold mb-6">Upload Your CV</h2>
+
         <div
-          className={`border-2 border-dashed rounded-lg p-8 text-center mt-4 ${
+          className={`border-2 border-dashed rounded-lg p-8 text-center ${
             isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300"
           }`}
           onDragOver={onDragOver}
-          onDragLeave={onDragLeave} // ✅ This will now receive the event parameter automatically
+          onDragLeave={onDragLeave}
           onDrop={onDrop}
         >
-          <div className="flex flex-col items-center">
-            <Upload className="h-10 w-10 text-gray-400 mb-4" />
-            <p className="mb-2 font-medium">
-              Drop files here or click to upload
-            </p>
-            <p className="text-sm text-gray-500 mb-4">
-              Supports: PDF, DOC, DOCX (Max 10MB)
-            </p>
-            <input
-              type="file"
-              accept=".pdf,.doc,.docx"
-              onChange={onFileUpload}
-              className="hidden"
-              id="file-upload"
-            />
-            <label
-              htmlFor="file-upload"
-              className="bg-blue-500 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-blue-600"
-            >
-              Select Files
-            </label>
-          </div>
+          <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-lg font-medium mb-2">
+            Drop your CV here or click to browse
+          </p>
+          <p className="text-sm text-gray-500 mb-4">
+            Supported formats: PDF, DOC, DOCX (Max 10MB)
+          </p>
+          <input
+            type="file"
+            onChange={onFileUpload}
+            accept=".pdf,.doc,.docx"
+            className="hidden"
+            id="file-upload"
+            multiple
+          />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => document.getElementById("file-upload")?.click()}
+          >
+            Choose Files
+          </Button>
         </div>
 
         {/* File List */}
         {files.length > 0 && (
-          <div className="mt-4 space-y-2">
-            {files.map((file, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-              >
-                <div className="flex-1">
-                  <p className="font-medium">{file.name}</p>
-                  <p className="text-sm text-gray-500">
-                    {(file.size / 1024 / 1024).toFixed(2)} MB
-                  </p>
-                </div>
-                <div className="flex items-center space-x-2">
-                  {file.completed ? (
-                    <span className="text-green-500 text-sm">✓ Uploaded</span>
-                  ) : (
-                    <div className="w-20 bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-blue-500 h-2 rounded-full transition-all"
-                        style={{ width: `${file.progress}%` }}
-                      />
+          <div className="mt-6">
+            <h3 className="font-medium mb-3">Uploaded Files</h3>
+            <div className="space-y-2">
+              {files.map((file, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-3 border rounded-lg"
+                >
+                  <div className="flex items-center">
+                    <FileText className="w-5 h-5 text-blue-600 mr-3" />
+                    <div>
+                      <p className="font-medium">{file.name}</p>
+                      <p className="text-sm text-gray-500">
+                        {formatFileSize(file.size)}
+                        {file.uploading && " - Uploading..."}
+                      </p>
                     </div>
+                  </div>
+                  {!file.uploading && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onRemoveFile(file.filename)}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
                   )}
-                  <button
-                    onClick={() => onRemoveFile(file.name)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Navigation Buttons */}
         <div className="flex justify-between mt-6">
           <Button variant="outline" onClick={onBack}>
             Back
           </Button>
-          <Button onClick={onNext} disabled={files.length === 0}>
-            Next
+          <Button
+            onClick={onNext}
+            disabled={files.filter((f) => !f.uploading).length === 0}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            Next Step
           </Button>
         </div>
       </div>
