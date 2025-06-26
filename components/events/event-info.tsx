@@ -1,8 +1,10 @@
-import Image from "next/image";
 import { Calendar, Clock, MapPin } from "lucide-react";
 import { Event } from "@/types/event";
-import { formatEventDate, formatEventTime } from "@/utils/event-utils";
-import { getValidImageSrc } from "@/lib/image-utils";
+import {
+  formatEventDate,
+  formatEventTime,
+  getValidImageSrc,
+} from "@/utils/event-utils";
 
 /**
  * Props for EventInfo component
@@ -18,6 +20,15 @@ interface EventInfoProps {
 export function EventInfo({ event }: EventInfoProps) {
   const fullDate = formatEventDate(event.dateTime);
   const time = formatEventTime(event.dateTime);
+
+  // Process location image properly
+  const locationImageSrc = getValidImageSrc(event.locationImage);
+
+  console.log(`🖼️ EVENT INFO LOCATION IMAGE for "${event.name}":`, {
+    original: event.locationImage,
+    processed: locationImageSrc,
+    isMinIO: locationImageSrc.includes("localhost:9000"),
+  });
 
   return (
     <div className="md:col-span-2">
@@ -45,12 +56,23 @@ export function EventInfo({ event }: EventInfoProps) {
         </div>
         {event.locationImage && (
           <div className="rounded-lg overflow-hidden border border-gray-200 ml-8">
-            <Image
-              src={getValidImageSrc(event.locationImage)}
+            {/* Use regular img tag instead of Next.js Image */}
+            <img
+              src={locationImageSrc}
               alt="Event location map"
-              width={600}
-              height={300}
               className="w-full max-h-72 object-contain"
+              onError={(e) => {
+                console.error(
+                  `❌ Location image load failed for event: ${event.name}`
+                );
+                const target = e.target as HTMLImageElement;
+                target.style.display = "none";
+              }}
+              onLoad={() => {
+                console.log(
+                  `✅ Location image loaded successfully for event: ${event.name}`
+                );
+              }}
             />
           </div>
         )}
@@ -62,12 +84,10 @@ export function EventInfo({ event }: EventInfoProps) {
         <div className="flex items-center">
           <div className="flex items-center">
             <div className="w-10 h-10 mr-3">
-              <Image
+              <img
                 src="/assets/images/logo.png"
                 alt="Eventura"
-                width={40}
-                height={40}
-                className="rounded-sm"
+                className="w-10 h-10 rounded-sm"
               />
             </div>
             <div>

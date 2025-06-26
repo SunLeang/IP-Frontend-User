@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
+import { getCategories } from "@/services/category-service";
+import { getEvents } from "@/services/event-service";
 import type { Category } from "@/types/category";
 import type { Event } from "@/types/event";
 import { EventStatus } from "@/types/event";
-import { getCategories } from "@/services/category-service";
-import { getEvents } from "@/services/event-service";
 import {
-  transformEventToCardData,
   getValidImageSrc,
+  formatEventDateForCard,
+  formatEventTime,
 } from "@/utils/event-utils";
 
 /**
@@ -24,14 +25,15 @@ interface UseHomeReturn {
  * Helper function to process category images from MinIO
  */
 function processCategoryImage(imagePath: string | null | undefined): string {
+  console.log("🏷️ Processing category image:", imagePath);
+
   if (
     !imagePath ||
     imagePath.trim() === "" ||
     imagePath === "null" ||
     imagePath === "undefined"
   ) {
-    console.log("No category image, using fallback");
-    return "/assets/images/default-category.png";
+    return "/assets/images/seminar.png"; // fallback for categories
   }
 
   // Handle MinIO URLs
@@ -39,11 +41,25 @@ function processCategoryImage(imagePath: string | null | undefined): string {
     imagePath.startsWith("http://localhost:9000/") ||
     imagePath.startsWith("https://")
   ) {
-    console.log("Using MinIO category image:", imagePath);
+    console.log("✅ Using direct MinIO URL:", imagePath);
     return imagePath;
   }
 
-  // Handle other cases
+  // Handle MinIO bucket paths
+  if (imagePath.includes("/") && imagePath.startsWith("images/")) {
+    const minioUrl = `http://localhost:9000/${imagePath}`;
+    console.log("✅ Constructed MinIO URL:", minioUrl);
+    return minioUrl;
+  }
+
+  // Handle just filename
+  if (!imagePath.includes("/")) {
+    const minioUrl = `http://localhost:9000/images/${imagePath}`;
+    console.log("✅ Constructed MinIO URL from filename:", minioUrl);
+    return minioUrl;
+  }
+
+  // Use the main utility as fallback
   return getValidImageSrc(imagePath);
 }
 
@@ -61,34 +77,50 @@ export function useHome(): UseHomeReturn {
       setIsLoading(true);
       setError(null);
       try {
+        console.log("🏠 HOME: Starting data fetch...");
+
+        // Use string value instead of enum
         const [categoriesData, eventsData] = await Promise.all([
           getCategories(),
-          getEvents({ status: EventStatus.PUBLISHED }),
+          getEvents({ status: "PUBLISHED" as any }), // Use string instead of enum
         ]);
 
         console.log("🏠 HOME: Raw categories from API:", categoriesData);
         console.log("🏠 HOME: Raw events from API:", eventsData);
 
-        // Log specific image data
-        categoriesData.forEach((cat: Category, index: number) => {
-          console.log(
-            `🏷️ Category ${index}: ${cat.name} - Image: ${cat.image}`
-          );
-        });
+        // Ensure we have arrays
+        const safeCategories = Array.isArray(categoriesData)
+          ? categoriesData
+          : [];
+        const safeEvents = Array.isArray(eventsData) ? eventsData : [];
 
-        eventsData.forEach((event: Event, index: number) => {
-          console.log(`📅 Event ${index}: ${event.name} - Images:`, {
-            profile: event.profileImage,
-            cover: event.coverImage,
-            location: event.locationImage,
+        // Log specific image data
+        safeCategories.forEach((cat: Category, index: number) => {
+          console.log(`🏷️ RAW CATEGORY ${index + 1}: "${cat.name}"`, {
+            id: cat.id,
+            image: cat.image,
+            isMinIOImage: cat.image?.includes("localhost:9000"),
           });
         });
 
-        setCategories(categoriesData);
-        setPublishedEvents(Array.isArray(eventsData) ? eventsData : []);
+        safeEvents.forEach((event: Event, index: number) => {
+          console.log(`📅 RAW EVENT ${index + 1}: "${event.name}"`, {
+            id: event.id,
+            profileImage: event.profileImage,
+            coverImage: event.coverImage,
+            isMinIOProfile: event.profileImage?.includes("localhost:9000"),
+            isMinIOCover: event.coverImage?.includes("localhost:9000"),
+          });
+        });
+
+        setCategories(safeCategories);
+        setPublishedEvents(safeEvents);
       } catch (err) {
-        console.error("Error fetching home data:", err);
+        console.error("❌ Error fetching home data:", err);
         setError("Failed to load data. Please try again later.");
+        // Set empty arrays on error
+        setCategories([]);
+        setPublishedEvents([]);
       } finally {
         setIsLoading(false);
       }
@@ -116,7 +148,9 @@ export function useHome(): UseHomeReturn {
   // Process categories with MinIO image handling
   const transformedCategories = displayCategories.map((cat) => {
     const processedImage = processCategoryImage(cat.image);
-    console.log(`🏷️ CATEGORY "${cat.name}": ${cat.image} -> ${processedImage}`);
+    console.log(
+      `🏷️ CATEGORY: "${cat.name}" - Original: ${cat.image} -> Processed: ${processedImage}`
+    );
 
     return {
       id: cat.id,
@@ -127,25 +161,24 @@ export function useHome(): UseHomeReturn {
 
   // Process events with MinIO image handling
   const transformedEvents = displayEvents.map((event, index) => {
+    const processedImage = getValidImageSrc(event.profileImage);
     console.log(
-      `📋 PROCESSING EVENT ${index + 1}/${displayEvents.length}: "${
-        event.name
-      }"`
+      `📅 EVENT ${index + 1}: "${event.name}" - Original: ${
+        event.profileImage
+      } -> Processed: ${processedImage}`
     );
-    console.log(`📋 Event images:`, {
-      profileImage: event.profileImage,
-      coverImage: event.coverImage,
-      locationImage: event.locationImage,
-    });
 
-    const transformed = transformEventToCardData(event);
-
-    console.log(`📋 TRANSFORMED RESULT:`, {
-      eventName: transformed.title,
-      finalImage: transformed.image,
-    });
-
-    return transformed;
+    return {
+      id: event.id,
+      title: event.name,
+      image: processedImage,
+      category: event.category?.name || "General",
+      date: formatEventDateForCard(event.dateTime),
+      venue: event.locationDesc,
+      time: formatEventTime(event.dateTime),
+      price: 0,
+      interested: event._count?.interestedUsers || 0,
+    };
   });
 
   // Filter events by date

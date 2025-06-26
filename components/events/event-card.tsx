@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Star } from "lucide-react";
+import { Star, Calendar, MapPin, Users, Heart } from "lucide-react";
 import { useInterest } from "@/context/interest-context";
 import { getValidImageSrc } from "@/lib/image-utils"; // Import utility
 
@@ -14,19 +14,19 @@ function getValidImagePath(src: string | undefined | null): string {
   return `/assets/images/${src}`;
 }
 
-interface EventCardProps {
+// Define the interface properly
+export interface EventCardProps {
   id: string;
   title: string;
-  image: string | undefined | null;
+  image: string;
   category: string;
-  date: {
-    month: string;
-    day: string;
-  };
+  date: { month: string; day: string };
   venue: string;
   time: string;
-  price: number;
   interested: number;
+  attending?: number;
+  price?: number;
+  onClick?: () => void;
 }
 
 export function EventCard({
@@ -37,8 +37,10 @@ export function EventCard({
   date,
   venue,
   time,
-  price,
   interested,
+  attending = 0,
+  price = 0,
+  onClick,
 }: EventCardProps) {
   const { addInterest, removeInterest, isInterested } = useInterest();
   const [isToggling, setIsToggling] = useState(false);
@@ -77,71 +79,96 @@ export function EventCard({
     }
   };
 
+  const processedImage = getValidImageSrc(image);
+
+  console.log(`🎯 EVENT CARD: "${title}"`, {
+    originalImage: image,
+    processedImage: processedImage,
+    category: category,
+    isMinIO: processedImage.includes("localhost:9000"),
+  });
+
+  const handleClick = () => {
+    if (onClick) {
+      onClick();
+    } else {
+      // Default navigation
+      window.location.href = `/events/${id}`;
+    }
+  };
+
   return (
-    <div className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden transform hover:-translate-y-1">
-      <Link href={`/events/${id}`} className="block">
-        <div className="relative">
-          <Image
-            src={imageSrc}
-            alt={title}
-            width={400}
-            height={200}
-            className="w-full h-48 object-cover"
-            onError={() => {
-              setImageSrc("/assets/constants/billboard.png");
-            }}
-          />
-          <div className="absolute top-4 left-4 px-3 py-1 rounded-md text-xs font-medium text-white bg-orange-500 shadow-sm">
+    <div
+      className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer transform transition-transform hover:scale-105"
+      onClick={handleClick}
+    >
+      {/* Image - Use regular img tag */}
+      <div className="h-48 bg-gray-200 relative overflow-hidden">
+        <img
+          src={processedImage}
+          alt={title}
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            console.error(`❌ Image load failed for event card: ${title}`, {
+              originalSrc: image,
+              processedSrc: processedImage,
+            });
+            const target = e.target as HTMLImageElement;
+            target.src = "/assets/constants/billboard.png";
+          }}
+          onLoad={() => {
+            console.log(
+              `✅ Image loaded successfully for event card: ${title}`
+            );
+          }}
+        />
+
+        {category && (
+          <div className="absolute top-2 left-2 bg-blue-500 text-white px-2 py-1 rounded text-xs">
             {category}
           </div>
-          <button
-            className="absolute top-2 right-2 bg-white p-1 rounded-full hover:bg-gray-100 transition-colors shadow-md hover:shadow-lg"
-            onClick={handleInterestToggle}
-            disabled={isToggling}
-          >
-            <Star
-              className={`h-5 w-5 transition-colors ${
-                saved ? "fill-yellow-400 text-yellow-400" : "text-gray-400"
-              }`}
-            />
-          </button>
-        </div>
+        )}
 
-        <div className="p-4">
-          <div className="flex gap-4">
-            <div className="text-center">
-              <div className="text-xs font-semibold text-blue-600">
-                {date.month}
-              </div>
-              <div className="text-2xl font-bold text-blue-600">{date.day}</div>
-            </div>
+        {price && price > 0 && (
+          <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded text-xs">
+            ${price}
+          </div>
+        )}
+      </div>
 
-            <div className="flex-1">
-              <h3 className="font-medium text-lg hover:text-blue-600 transition-colors line-clamp-2">
-                {title}
-              </h3>
-              <p className="text-sm text-gray-500 mt-1">{venue}</p>
-              <p className="text-xs text-gray-400 mt-0.5">{time}</p>
+      {/* Content */}
+      <div className="p-4">
+        <h3 className="font-semibold text-lg mb-2 line-clamp-2">{title}</h3>
 
-              <div className="flex items-center justify-between mt-2">
-                <div className="text-sm font-medium">
-                  {price > 0 ? `USD ${price.toFixed(2)}` : "Free"}
-                </div>
-                <div className="flex items-center text-xs text-gray-500">
-                  <Star
-                    className={`h-4 w-4 mr-1 ${
-                      saved
-                        ? "fill-yellow-400 text-yellow-400"
-                        : "text-gray-400"
-                    }`}
-                  />
-                  <span>{interested} interested</span>
-                </div>
-              </div>
-            </div>
+        <div className="space-y-2 text-sm text-gray-500 mb-4">
+          <div className="flex items-center">
+            <Calendar className="w-4 h-4 mr-2" />
+            <span>
+              {date.month} {date.day}
+            </span>
+          </div>
+          <div className="flex items-center">
+            <MapPin className="w-4 h-4 mr-2" />
+            <span className="line-clamp-1">{venue}</span>
+          </div>
+          <div className="flex items-center">
+            <span className="text-xs">{time}</span>
           </div>
         </div>
-      </Link>
+
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center text-gray-500">
+            <Heart className="w-4 h-4 mr-1" />
+            <span>{interested}</span>
+          </div>
+          {attending > 0 && (
+            <div className="flex items-center text-gray-500">
+              <Users className="w-4 h-4 mr-1" />
+              <span>{attending}</span>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

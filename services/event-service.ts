@@ -1,5 +1,5 @@
 import { apiGet, apiPost, apiDelete } from "./api";
-import type { EventStatus, Event, EventsFilterParams } from "@/types/event";
+import type { Event, EventsFilterParams } from "@/types/event";
 
 /**
  * Event Service
@@ -27,13 +27,28 @@ export async function getEvents(params?: EventsFilterParams): Promise<Event[]> {
     console.log(`📡 Fetching events from: /api/events${queryString}`);
 
     const response = await apiGet(`/api/events${queryString}`);
-    const events = response.data || response || [];
+
+    // Enhanced response handling
+    let events: Event[] = [];
+
+    if (Array.isArray(response)) {
+      events = response;
+    } else if (response?.data && Array.isArray(response.data)) {
+      events = response.data;
+    } else if (response && typeof response === "object") {
+      // Handle case where response might be a single event object
+      events = [response];
+    } else {
+      console.warn("⚠️ Unexpected response format:", response);
+      events = [];
+    }
 
     // Enhanced logging for MinIO images
     console.log("📊 EVENTS API RESPONSE:", {
       totalEvents: events.length,
-      hasData: !!response.data,
+      hasData: !!response?.data,
       isArray: Array.isArray(events),
+      originalResponse: response,
     });
 
     // Log each event's image data specifically
@@ -52,7 +67,7 @@ export async function getEvents(params?: EventsFilterParams): Promise<Event[]> {
 
     return events;
   } catch (error) {
-    console.error("Failed to fetch events:", error);
+    console.error("❌ Failed to fetch events:", error);
     return [];
   }
 }
@@ -80,15 +95,13 @@ export async function getEventById(id: string): Promise<Event | null> {
 
     return event;
   } catch (error) {
-    console.error(`Failed to fetch event with id ${id}:`, error);
+    console.error(`❌ Failed to fetch event with id ${id}:`, error);
     return null;
   }
 }
 
 /**
  * Toggles user interest in an event
- * @param eventId - Event ID
- * @returns Promise with success status and interest state
  */
 export async function toggleEventInterest(
   eventId: string
@@ -122,7 +135,6 @@ export async function toggleEventInterest(
 
 /**
  * Fetches user's interested events
- * @returns Promise resolving to array of events
  */
 export async function getInterestedEvents(): Promise<Event[]> {
   try {
@@ -148,8 +160,6 @@ export async function getInterestedEvents(): Promise<Event[]> {
 
 /**
  * Joins user to an event
- * @param eventId - Event ID
- * @returns Promise with success status
  */
 export async function joinEvent(
   eventId: string
@@ -174,8 +184,6 @@ export async function joinEvent(
 
 /**
  * Removes user from an event
- * @param eventId - Event ID
- * @returns Promise with success status
  */
 export async function leaveEvent(
   eventId: string
