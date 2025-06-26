@@ -7,14 +7,15 @@ import {
   useEffect,
   useCallback,
   useRef,
-  type ReactNode,
+  ReactNode,
 } from "react";
+import { useAuth } from "./auth-context";
 import {
   toggleEventInterest,
   getInterestedEvents,
 } from "@/services/event-service";
-import { useAuth } from "./auth-context";
 
+// Update Event interface to match EventCardData
 export interface Event {
   id: string;
   title: string;
@@ -28,6 +29,7 @@ export interface Event {
   time: string;
   price: number;
   interested: number;
+  attending?: number;
 }
 
 interface InterestContextType {
@@ -89,12 +91,14 @@ export function InterestProvider({ children }: { children: ReactNode }) {
           const storedEvents = localStorage.getItem("interestedEvents");
           if (storedEvents) {
             try {
-              const parsedEvents = JSON.parse(storedEvents);
-              setInterestedEvents(
-                Array.isArray(parsedEvents) ? parsedEvents : []
-              );
+              const parsed = JSON.parse(storedEvents);
+              if (Array.isArray(parsed)) {
+                setInterestedEvents(parsed);
+              } else {
+                setInterestedEvents([]);
+              }
             } catch (error) {
-              console.error("Failed to parse localStorage events:", error);
+              console.error("Error parsing stored events:", error);
               setInterestedEvents([]);
               localStorage.removeItem("interestedEvents");
             }
@@ -106,38 +110,39 @@ export function InterestProvider({ children }: { children: ReactNode }) {
           const events = await getInterestedEvents();
 
           if (events && Array.isArray(events)) {
-            const transformedEvents = events.map((event) => ({
-              id: event.id,
-              title: event.name,
-              image:
-                event.profileImage || "/assets/images/event-placeholder.png",
-              category: event.category?.name || "Uncategorized",
+            // Transform API events to match Event interface
+            const transformedEvents: Event[] = events.map((apiEvent: any) => ({
+              id: apiEvent.id,
+              title: apiEvent.name,
+              image: apiEvent.profileImage || "",
+              category: apiEvent.category?.name || "General",
               date: {
-                month: new Date(event.dateTime)
-                  .toLocaleString("en-US", { month: "short" })
-                  .substring(0, 3)
+                month: new Date(apiEvent.dateTime)
+                  .toLocaleDateString("en-US", { month: "short" })
                   .toUpperCase(),
-                day: new Date(event.dateTime).getDate().toString(),
+                day: new Date(apiEvent.dateTime).toLocaleDateString("en-US", {
+                  day: "2-digit",
+                }),
               },
-              venue: event.locationDesc,
-              time: new Date(event.dateTime).toLocaleString("en-US", {
-                hour: "numeric",
-                minute: "numeric",
+              venue: apiEvent.locationDesc || "",
+              time: new Date(apiEvent.dateTime).toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
                 hour12: true,
               }),
               price: 0,
-              interested: event._count?.interestedUsers || 0,
+              interested: apiEvent._count?.interestedUsers || 0,
+              attending: apiEvent._count?.attendingUsers || 0,
             }));
 
             setInterestedEvents(transformedEvents);
-            // Sync to localStorage as backup
+            // Also update localStorage
             localStorage.setItem(
               "interestedEvents",
               JSON.stringify(transformedEvents)
             );
           } else {
             setInterestedEvents([]);
-            localStorage.removeItem("interestedEvents");
           }
         }
 
@@ -155,12 +160,12 @@ export function InterestProvider({ children }: { children: ReactNode }) {
           const storedEvents = localStorage.getItem("interestedEvents");
           if (storedEvents) {
             try {
-              const parsedEvents = JSON.parse(storedEvents);
-              setInterestedEvents(
-                Array.isArray(parsedEvents) ? parsedEvents : []
-              );
+              const parsed = JSON.parse(storedEvents);
+              if (Array.isArray(parsed)) {
+                setInterestedEvents(parsed);
+              }
             } catch (parseError) {
-              setInterestedEvents([]);
+              console.error("Error parsing fallback events:", parseError);
             }
           }
         }
@@ -199,14 +204,9 @@ export function InterestProvider({ children }: { children: ReactNode }) {
           setInterestedEvents((prev) => prev.filter((e) => e.id !== event.id));
           const storedEvents = localStorage.getItem("interestedEvents");
           if (storedEvents) {
-            const parsedEvents = JSON.parse(storedEvents);
-            const filteredEvents = parsedEvents.filter(
-              (e: Event) => e.id !== event.id
-            );
-            localStorage.setItem(
-              "interestedEvents",
-              JSON.stringify(filteredEvents)
-            );
+            const parsed = JSON.parse(storedEvents);
+            const filtered = parsed.filter((e: Event) => e.id !== event.id);
+            localStorage.setItem("interestedEvents", JSON.stringify(filtered));
           }
         }
       } catch (error) {

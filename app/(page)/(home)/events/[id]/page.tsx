@@ -105,7 +105,7 @@ export default function EventDetailPage({ params }: EventPageProps) {
 
   return (
     <div className="min-h-screen bg-white pb-10">
-      {/* ✅ Use EventHeader component instead of inline header */}
+      {/* Use EventHeader component instead of inline header */}
       <EventHeader
         event={event}
         isInterested={saved}
@@ -114,10 +114,10 @@ export default function EventDetailPage({ params }: EventPageProps) {
 
       <div className="container mx-auto px-4 py-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* ✅ Use EventInfo component */}
+          {/* Use EventInfo component */}
           <EventInfo event={event} />
 
-          {/* ✅ Use EventActions component */}
+          {/* Use EventActions component */}
           <EventActions
             event={event}
             isJoined={isJoined}

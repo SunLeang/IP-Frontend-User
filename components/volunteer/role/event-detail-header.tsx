@@ -1,7 +1,7 @@
-import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, Clock, MapPin, Star } from "lucide-react";
 import { Event } from "@/services/event-service";
+import { getValidImageSrc } from "@/utils/event-utils";
 
 interface EventDetailHeaderProps {
   event: Event; // Use Event type from service
@@ -14,13 +14,6 @@ export function EventDetailHeader({
   isStarred,
   onToggleStar,
 }: EventDetailHeaderProps) {
-  // Helper function to ensure image paths are properly formatted
-  const getValidImageSrc = (src: string | null | undefined): string => {
-    if (!src) return "/placeholder.svg";
-    if (src.startsWith("http")) return src;
-    return src.startsWith("/") ? src : `/${src}`;
-  };
-
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return {
@@ -49,6 +42,17 @@ export function EventDetailHeader({
   };
 
   const eventDate = formatDate(event.dateTime);
+  const eventImage = getValidImageSrc(event.coverImage || event.profileImage);
+
+  const handleImageError = (
+    e: React.SyntheticEvent<HTMLImageElement, Event>
+  ) => {
+    console.log("🖼️ Event detail image failed to load, using fallback");
+    const target = e.target as HTMLImageElement;
+    if (target.src !== "/assets/constants/billboard.png") {
+      target.src = "/assets/constants/billboard.png";
+    }
+  };
 
   return (
     <Card className="mb-6">
@@ -89,12 +93,16 @@ export function EventDetailHeader({
           </div>
         </div>
 
+        {/* Use regular img tag instead of Next.js Image */}
         <div className="relative h-64 rounded-lg overflow-hidden mb-4">
-          <Image
-            src={getValidImageSrc(event.coverImage || event.profileImage)}
+          <img
+            src={eventImage}
             alt={event.name}
-            fill
-            className="object-cover"
+            className="w-full h-full object-cover"
+            onError={handleImageError}
+            onLoad={() => {
+              console.log(`✅ Event detail image loaded: ${eventImage}`);
+            }}
           />
         </div>
 

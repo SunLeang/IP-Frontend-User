@@ -1,48 +1,78 @@
-import Image from "next/image";
-import { ArrowLeft, Share2 } from "lucide-react";
-import Link from "next/link";
+import { ArrowLeft, Heart, Share2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 import { VolunteerHistoryEvent } from "@/services/volunteer-history-service";
-import { getValidImageSrc } from "@/lib/image-utils";
+import { getValidImageSrc } from "@/utils/event-utils";
 
 interface VolunteerEventHeaderProps {
   event: VolunteerHistoryEvent;
-  backUrl?: string;
 }
 
-export function VolunteerEventHeader({
-  event,
-  backUrl = "/volunteer-role/history",
-}: VolunteerEventHeaderProps) {
+export function VolunteerEventHeader({ event }: VolunteerEventHeaderProps) {
+  const router = useRouter();
+
+  const eventImage = getValidImageSrc(event.coverImage || event.profileImage);
+
+  const handleImageError = (
+    e: React.SyntheticEvent<HTMLImageElement, Event>
+  ) => {
+    console.log(
+      `🖼️ Volunteer event header image failed to load: ${event.name}`
+    );
+    const target = e.target as HTMLImageElement;
+    if (target.src !== "/assets/constants/billboard.png") {
+      target.src = "/assets/constants/billboard.png";
+    }
+  };
+
   return (
-    <>
-      {/* Banner Image */}
-      <div className="w-full h-[200px] md:h-[300px] relative">
-        <Image
-          src={getValidImageSrc(event.coverImage || event.profileImage)}
-          alt={event.name}
-          fill
-          className="object-cover"
-          priority
-        />
-      </div>
+    <div className="w-full h-[200px] md:h-[300px] relative">
+      {/* ✅ Event Image */}
+      <img
+        src={eventImage}
+        alt={event.name}
+        className="w-full h-full object-cover"
+        onError={handleImageError}
+        onLoad={() => {
+          console.log(`✅ Volunteer event header image loaded: ${event.name}`);
+        }}
+      />
 
-      {/* Header with title and actions */}
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center">
-            <Link href={backUrl} className="mr-3">
-              <ArrowLeft className="h-6 w-6" />
-            </Link>
-            <h1 className="text-2xl font-bold">{event.name}</h1>
-          </div>
+      {/* Dark overlay for better contrast */}
+      <div className="absolute inset-0 bg-black bg-opacity-30" />
 
-          <div className="flex items-center space-x-4">
-            <button aria-label="Share event">
-              <Share2 className="h-7 w-7 text-blue-900" />
-            </button>
+      {/* ✅ UPDATED: Only navigation buttons, no title */}
+      <div className="absolute inset-0 flex flex-col">
+        {/* Top Navigation */}
+        <div className="flex items-center justify-between p-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.back()}
+            className="text-white hover:bg-white/20"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-white hover:bg-white/20"
+            >
+              <Heart className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-white hover:bg-white/20"
+            >
+              <Share2 className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

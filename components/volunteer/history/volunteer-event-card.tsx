@@ -1,9 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Star, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { VolunteerHistoryEvent } from "@/services/volunteer-history-service";
-import { getValidImageSrc } from "@/lib/image-utils";
+import { getValidImageSrc } from "@/utils/event-utils";
 
 interface VolunteerEventCardProps {
   event: VolunteerHistoryEvent;
@@ -43,16 +42,41 @@ export function VolunteerEventCard({ event }: VolunteerEventCardProps) {
   const dateInfo = formatDate(event.dateTime);
   const timeInfo = formatTime(event.dateTime);
 
+  // Process image URL correctly
+  const eventImage = getValidImageSrc(event.profileImage || event.coverImage);
+
+  const handleImageError = (
+    e: React.SyntheticEvent<HTMLImageElement, Event>
+  ) => {
+    console.log(`🖼️ History event image failed to load: ${event.name}`);
+    const target = e.target as HTMLImageElement;
+    if (target.src !== "/assets/constants/billboard.png") {
+      target.src = "/assets/constants/billboard.png";
+    }
+  };
+
+  console.log(`🎯 HISTORY EVENT CARD: "${event.name}"`, {
+    originalProfileImage: event.profileImage,
+    originalCoverImage: event.coverImage,
+    processedImage: eventImage,
+    isMinIO: eventImage.includes("localhost:9000"),
+  });
+
   return (
     <Link href={`/volunteer-role/history/${event.id}`}>
       <div className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer">
         <div className="relative">
-          <Image
-            src={getValidImageSrc(event.profileImage || event.coverImage)}
+          {/* Use regular img tag instead of Next.js Image */}
+          <img
+            src={eventImage}
             alt={event.name}
-            width={400}
-            height={200}
             className="w-full h-48 object-cover"
+            onError={handleImageError}
+            onLoad={() => {
+              console.log(
+                `✅ History event image loaded: ${event.name} - ${eventImage}`
+              );
+            }}
           />
           <Badge
             className={`absolute top-2 right-2 ${getStatusBadge(event.status)}`}

@@ -12,11 +12,13 @@ interface FormData {
   reason: string;
 }
 
+// Update FileItem interface to match what's actually being used
 interface FileItem {
   name: string;
   size: number;
-  progress: number;
-  completed: boolean;
+  documentUrl: string;
+  filename: string;
+  uploading?: boolean;
 }
 
 interface UseVolunteerApplicationReturn {
@@ -176,7 +178,7 @@ export function useVolunteerApplication(
         const submitData = applicationData || {
           eventId,
           whyVolunteer: formData.reason,
-          cvPath: `/uploads/cv/${files[0]?.name || "cv.pdf"}`,
+          cvPath: files[0]?.documentUrl || "",
         };
 
         await applyForVolunteer(submitData);
